@@ -1,0 +1,10 @@
+# MQTT
+paho-mqtt
+
+# HTTP
+uvicorn
+requests
+
+# CoAP
+aiocoap
+linkheader
