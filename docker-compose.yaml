@@ -1,10 +1,12 @@
-version: "3.9"
+# MQTT
 
 services:
   mosquitto-broker:
     image: eclipse-mosquitto:latest
     ports:
       - "1883:1883"
+    volumes:
+      - ./protocols/MQTT/mosquitto.conf:/mosquitto-broker/mosquitto.conf
 
   mqtt-client-a:
     build: ./
@@ -18,3 +20,17 @@ services:
     depends_on:
       - mosquitto-broker
 
+# HTTP
+  http-server:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./uploads:/var/www/uploads/upload
+
+  http-client:
+    build: .
+    command: python protocols/HTTP/client/http_client.py
+    depends_on:
+      - http-server
