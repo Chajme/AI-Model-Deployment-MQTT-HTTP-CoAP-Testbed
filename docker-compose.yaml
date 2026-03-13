@@ -34,3 +34,16 @@ services:
     command: python protocols/HTTP/client/http_client.py
     depends_on:
       - http-server
+
+# CoAP
+  coap-server:
+    build: .
+    command: python protocols/CoAP/server/coap_server.py
+    ports:
+      - "5683:5683/udp"
+
+  coap-client:
+    build: .
+    command: python protocols/CoAP/client/coap_client.py
+    depends_on:
+      - coap-server
