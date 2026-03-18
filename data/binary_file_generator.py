@@ -26,8 +26,8 @@ file_sizes_kb = [250]
 file_sizes_mb = [1, 5, 20, 50]
 
 for size_kb in file_sizes_kb:
-    generate_model_file_kb(f"binary_file_{size_kb}.bin", size_kb)
+    generate_model_file_kb(f"binary_file_{size_kb}kb.bin", size_kb)
 
 for size_mb in file_sizes_mb:
-    generate_model_file_mb(f"binary_file_{size_mb}.bin", size_mb)
+    generate_model_file_mb(f"binary_file_{size_mb}mb.bin", size_mb)
 
