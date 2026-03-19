@@ -1,7 +1,8 @@
 import requests
 import time
 import os
-from pathlib import Path
+
+from output.write_csv import write_to_file
 
 BASE_URL = "http://http-server"
 DATA_DIR = "/app/data"
@@ -81,6 +82,10 @@ def transfer_binary_files():
 
             if put_response.status_code in [201, 204]:
                 print(f"  -> Success! Transfer took {end_time - start_time:.2f} seconds.")
+                measurements = [
+                    {'protocol': 'http', 'filesize': file_size_mb, 'time_to_transfer': f"{end_time - start_time:.2f}"},
+                ]
+                write_to_file(measurements)
             else:
                 print(f"  -> Failed. Status: {put_response.status_code}")
                 print(f"  -> Response: {put_response.text}")

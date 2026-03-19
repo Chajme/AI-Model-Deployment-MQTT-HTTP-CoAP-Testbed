@@ -1,6 +1,6 @@
-# MQTT
-
 services:
+
+  # MQTT
   mosquitto-broker:
     image: eclipse-mosquitto:latest
     ports:
@@ -31,9 +31,12 @@ services:
 
   http-client:
     build: .
-    command: python protocols/HTTP/client/http_client.py
+#    command: python protocols/HTTP/client/http_client.py
+    command: python -m protocols.HTTP.client.http_client
     depends_on:
       - http-server
+    volumes:
+      - ./output:/app/output
 
 # CoAP
   coap-server:
