@@ -10,43 +10,47 @@ services:
 
   mqtt-client-a:
     build: ./
-    command: python protocols/MQTT/clients/mqtt_client_a.py
+#    command: python protocols/MQTT/clients/mqtt_client_a.py
+    command: python -m protocols.MQTT.clients.mqtt_client_a
     depends_on:
       - mosquitto-broker
 
   mqtt-client-b:
     build: ./
-    command: python protocols/MQTT/clients/mqtt_client_b.py
+#    command: python protocols/MQTT/clients/mqtt_client_b.py
+    command: python -m protocols.MQTT.clients.mqtt_client_b
     depends_on:
       - mosquitto-broker
 
-# HTTP
-  http-server:
-    image: nginx:alpine
-    ports:
-      - "3000:80"
-    volumes:
-      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./uploads:/var/www/uploads/upload
-
-  http-client:
-    build: .
-#    command: python protocols/HTTP/client/http_client.py
-    command: python -m protocols.HTTP.client.http_client
-    depends_on:
-      - http-server
-    volumes:
-      - ./output:/app/output
+## HTTP
+#  http-server:
+#    image: nginx:alpine
+#    ports:
+#      - "3000:80"
+#    volumes:
+#      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+#      - ./uploads:/var/www/uploads/upload
+#
+#  http-client:
+#    build: .
+##    command: python protocols/HTTP/client/http_client.py
+#    command: python -m protocols.HTTP.client.http_client
+#    depends_on:
+#      - http-server
+#    volumes:
+#      - ./output:/app/output
 
 # CoAP
-  coap-server:
-    build: .
-    command: python protocols/CoAP/server/coap_server.py
-    ports:
-      - "5683:5683/udp"
-
-  coap-client:
-    build: .
-    command: python protocols/CoAP/client/coap_client.py
-    depends_on:
-      - coap-server
+#  coap-server:
+#    build: .
+##    command: python protocols/CoAP/server/coap_server.py
+#    command: python protocols.CoAP.server.coap_server
+#    ports:
+#      - "5683:5683/udp"
+#
+#  coap-client:
+#    build: .
+##    command: python protocols/CoAP/client/coap_client.py
+#    command: python protocols.CoAP.client.coap_client
+#    depends_on:
+#      - coap-server

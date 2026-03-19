@@ -1,5 +1,4 @@
 protocol,filesize,time_to_transfer
-http,20.0,0.21
 http,50.0,0.52
 http,5.0,0.06
 http,1.0,0.02
