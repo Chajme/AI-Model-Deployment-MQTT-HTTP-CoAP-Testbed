@@ -3,6 +3,8 @@ import time
 import os
 from aiocoap import Message, Context, PUT
 
+from output.write_csv import write_to_file_coap
+
 DATA_DIR = "/app/data"
 SERVER_URI = "coap://coap-server/upload"
 
@@ -34,6 +36,15 @@ async def transfer_file(context, filename):
 
         print(f"Result: {response.code}")
         print(f"CoAP Time: {duration:.2f}s ({file_size_mb / duration:.2f} MB/s)")
+
+        measurements = [
+            {'protocol': "coap",
+             'file_size': file_size_mb,
+             'time_to_transfer': f"{duration:.2f}"}
+        ]
+
+        write_to_file_coap(measurements)
+
     except Exception as e:
         print(f"Failed to send {filename}: {e}")
 
