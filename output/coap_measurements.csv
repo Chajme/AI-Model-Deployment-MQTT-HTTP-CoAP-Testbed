@@ -1,0 +1,6 @@
+protocol,file_size,time_to_transfer
+coap,1.0,1.10
+coap,20.0,206.16
+coap,0.244140625,0.16
+coap,50.0,979.52
+coap,5.0,3.79
