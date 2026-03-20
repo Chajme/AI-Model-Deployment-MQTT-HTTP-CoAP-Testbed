@@ -1,28 +1,10 @@
-# import time
-# import paho.mqtt.client as mqtt
-#
-# BROKER = "mosquitto-broker"
-# TOPIC = "paho/temperature"
-#
-# client = mqtt.Client()
-#
-# client.connect(BROKER, 1883, 60)
-#
-# client.loop_start()
-#
-# message = 0
-#
-# while True:
-#     print(f"Sending {message}")
-#     client.publish(TOPIC, message)
-#     message += 1
-#     time.sleep(1)
-
 import paho.mqtt.client as mqtt
 import time
 import os
 import json
 import math
+
+from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"
 TOPIC_CTRL = "file/control"
@@ -37,7 +19,7 @@ client.connect(BROKER, 1883, 60)
 client.loop_start()
 
 
-def send_file(filename):
+def send_file(filename, qos_level):
     filepath = os.path.join(DATA_DIR, filename)
     if not os.path.exists(filepath):
         print(f"File {filepath} not found.")
@@ -52,7 +34,7 @@ def send_file(filename):
 
     # 1. Send Metadata (so the receiver knows what to expect)
     metadata = {"filename": filename, "total_chunks": total_chunks}
-    client.publish(TOPIC_CTRL, json.dumps(metadata), qos=1)
+    client.publish(TOPIC_CTRL, json.dumps(metadata), qos=qos_level)
     time.sleep(0.5)  # Give the receiver a moment to open the file
 
     # 2. Send the Chunks
@@ -61,7 +43,7 @@ def send_file(filename):
             chunk = f.read(CHUNK_SIZE)
 
             # Using QoS 1 ensures the broker confirms receipt of the chunk
-            client.publish(TOPIC_DATA, bytearray(chunk), qos=1)
+            client.publish(TOPIC_DATA, bytearray(chunk), qos=qos_level)
 
             # Simple progress print
             if chunk_num % 10 == 0 or chunk_num == total_chunks - 1:
@@ -73,8 +55,18 @@ def send_file(filename):
     end_time = time.time()
     duration = end_time - start_time
 
+    measurements = [
+        {'protocol': 'mqtt',
+         'qos': qos_level,
+         'side': 'sender',
+         'file_size': file_size / (1024 * 1024),
+         'sender_duration': f"{duration:.2f}",
+         'receiver_duration': "X"}
+    ]
+    write_to_file_mqtt(measurements)
+
     print("Finished sending file.")
-    print(f"Sender Time: {duration:.2f} seconds ({(file_size / 1024 / 1024) / duration:.2f} MB/s)")
+    print(f"Sender Time: {duration:.2f} seconds ({(file_size / (1024 * 1024)) / duration:.2f} MB/s)")
 
 
 if __name__ == "__main__":
@@ -89,9 +81,9 @@ if __name__ == "__main__":
         if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")
     ]
 
-    for filename in files:
-        # Example: Send the 5MB file from your screenshot
-        send_file(filename)
+    for qos_level in range (0, 3):
+        for filename in files:
+            send_file(filename, qos_level)
 
     time.sleep(10)
     client.loop_stop()

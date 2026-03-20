@@ -10,17 +10,21 @@ services:
 
   mqtt-client-a:
     build: ./
-#    command: python protocols/MQTT/clients/mqtt_client_a.py
     command: python -m protocols.MQTT.clients.mqtt_client_a
     depends_on:
       - mosquitto-broker
+    volumes:
+      - ./output:/app/output
+      - ./:/app
 
   mqtt-client-b:
     build: ./
-#    command: python protocols/MQTT/clients/mqtt_client_b.py
     command: python -m protocols.MQTT.clients.mqtt_client_b
     depends_on:
       - mosquitto-broker
+    volumes:
+      - ./output:/app/output
+      - ./:/app
 
 ## HTTP
 #  http-server:
