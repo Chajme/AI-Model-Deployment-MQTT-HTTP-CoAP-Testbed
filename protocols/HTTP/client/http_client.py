@@ -7,13 +7,12 @@ from output.write_csv import write_to_file_http
 BASE_URL = "http://http-server"
 DATA_DIR = "/app/data"
 
-
-def transfer_binary_files():
+def load_files():
     print(f"\n--- Phase 1: Scanning {DATA_DIR} for Binary Files ---")
 
     if not os.path.exists(DATA_DIR):
         print(f"Error: Directory '{DATA_DIR}' does not exist.")
-        return
+        return None
 
     # Grab all files in the directory
     files = [
@@ -23,32 +22,43 @@ def transfer_binary_files():
 
     if not files:
         print(f"No files found in '{DATA_DIR}' to transfer.")
-        return
+        return None
 
     print(f"Found {len(files)} file(s). Starting streaming transfers...\n")
+
+    return files
+
+def calculate_logging_size(filepath: str, filename: str):
+    file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
+    print(f"Streaming {filename} ({file_size_mb:.2f} MB)...")
+
+    return file_size_mb
+
+def transfer_binary_files():
+    files = load_files()
+    if not files:
+        return
 
     # Loop through and stream each file
     for filename in files:
         filepath = os.path.join(DATA_DIR, filename)
         upload_url = f"{BASE_URL}/upload/{filename}"
 
-        # Calculate size for logging
-        file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
-        print(f"Streaming {filename} ({file_size_mb:.2f} MB)...")
+        file_size_mb = calculate_logging_size(filepath, filename)
 
         try:
             # 'rb' mode combined with data=file_stream ensures chunked streaming (Low RAM usage)
             with open(filepath, "rb") as file_stream:
                 start_time = time.time()
-
                 put_response = requests.put(upload_url, data=file_stream)
-
                 end_time = time.time()
 
             if put_response.status_code in [201, 204]:
-                print(f"  -> Success! Transfer took {end_time - start_time:.2f} seconds.")
+                transfer_time = end_time - start_time
+
+                print(f"  -> Success! Transfer took {transfer_time:.2f} seconds.")
                 measurements = [
-                    {'protocol': 'http', 'file_size': file_size_mb, 'time_to_transfer': f"{end_time - start_time:.2f}"},
+                    {'protocol': 'http', 'file_size': file_size_mb, 'time_to_transfer': f"{transfer_time:.2f}"},
                 ]
                 write_to_file_http(measurements)
 
