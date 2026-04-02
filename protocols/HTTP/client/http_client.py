@@ -34,6 +34,15 @@ def calculate_logging_size(filepath: str, filename: str):
 
     return file_size_mb
 
+def measure_network_latency():
+    rtt_start = time.perf_counter()
+    requests.head(BASE_URL)
+    network_latency = time.perf_counter() - rtt_start
+
+    print(f"Network Latency (RTT): {network_latency:.3f}s")
+
+    return network_latency
+
 def transfer_binary_files():
     files = load_files()
     if not files:
@@ -43,8 +52,9 @@ def transfer_binary_files():
     for filename in files:
         filepath = os.path.join(DATA_DIR, filename)
         upload_url = f"{BASE_URL}/upload/{filename}"
-
         file_size_mb = calculate_logging_size(filepath, filename)
+
+        latency = measure_network_latency()
 
         try:
             # 'rb' mode combined with data=file_stream ensures chunked streaming (Low RAM usage)
@@ -58,7 +68,11 @@ def transfer_binary_files():
 
                 print(f"  -> Success! Transfer took {transfer_time:.2f} seconds.")
                 measurements = [
-                    {'protocol': 'http', 'file_size': file_size_mb, 'time_to_transfer': f"{transfer_time:.2f}"},
+                    {'protocol': 'http',
+                     'file_size': file_size_mb,
+                     'time_to_transfer': f"{transfer_time:.3f}",
+                     'latency': f"{latency:.5f}"
+                     }
                 ]
                 write_to_file_http(measurements)
 
