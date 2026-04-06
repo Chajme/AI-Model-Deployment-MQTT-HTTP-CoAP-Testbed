@@ -1,12 +1,26 @@
 import asyncio
 import time
 import os
-from aiocoap import Message, Context, PUT
+from aiocoap import Message, Context, PUT, GET
 
 from output.write_csv import write_to_file_coap
 
 DATA_DIR = "/app/data"
 SERVER_URI = "coap://coap-server/upload"
+
+
+async def get_latency(context, uri):
+    ping_request = Message(code=GET, uri=uri)
+
+    start_ping = time.perf_counter()
+    try:
+        # We don't care if the response is 4.05 Method Not Allowed,
+        # we just need the server to acknowledge us.
+        await context.request(ping_request).response
+        end_ping = time.perf_counter()
+        return end_ping - start_ping
+    except Exception:
+        return 0.0
 
 def calculate_file_size(payload, filename: str):
     file_size_mb = len(payload) / (1024 * 1024)
@@ -33,6 +47,8 @@ async def transfer_file(context, filename):
 
     file_size_mb = calculate_file_size(payload, filename)
 
+    latency = await get_latency(context, SERVER_URI)
+
     start_time = time.time()
 
     # Pass the filename as a URI query: ?file=filename.bin
@@ -46,12 +62,15 @@ async def transfer_file(context, filename):
         transfer_time = max(end_time - start_time, 0.001)
 
         print(f"Result: {response.code}")
+        print(f"Latency (Time to Start): {latency:.4f}s")
         print(f"CoAP Time: {transfer_time:.2f}s ({file_size_mb / transfer_time:.2f} MB/s)")
 
         measurements = [
             {'protocol': "coap",
              'file_size': file_size_mb,
-             'time_to_transfer': f"{transfer_time:.2f}"}
+             'time_to_transfer': f"{transfer_time:.2f}",
+             'latency': f"{latency:.4f}"
+            }
         ]
 
         write_to_file_coap(measurements)
