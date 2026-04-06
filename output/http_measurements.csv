@@ -1,6 +1,6 @@
-protocol,filesize,time_to_transfer
-http,50.0,0.52
-http,5.0,0.06
-http,1.0,0.02
-http,0.244140625,0.01
-http,20.0,0.21
+protocol,file_size,time_to_transfer,latency
+http,5.0,0.057,0.005
+http,50.0,0.483,0.002
+http,20.0,0.203,0.002
+http,1.0,0.018,0.002
+http,0.244140625,0.010,0.002

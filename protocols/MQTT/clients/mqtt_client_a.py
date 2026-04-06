@@ -14,7 +14,19 @@ DATA_DIR = "/app/data"
 # 256 KB chunk size is generally safe for Mosquitto defaults
 CHUNK_SIZE = 256 * 1024
 
+metadata_mid = None
+metadata_sent_time = 0
+ack_latency = 0
+
+def on_publish(client, userdata, mid):
+    global metadata_mid, ack_latency
+    if mid == metadata_mid:
+        # Calculate how long the broker took to ACK our metadata
+        ack_latency = time.perf_counter() - metadata_sent_time
+        print(f"Metadata ACK received in {ack_latency:.4f}s")
+
 client = mqtt.Client()
+client.on_publish = on_publish
 client.connect(BROKER, 1883, 60)
 client.loop_start()
 
@@ -25,11 +37,15 @@ def calculate_total_chunks(filepath):
     return file_size, total_chunks
 
 def send_metadata(filename, total_chunks, qos_level):
-    # 1. Send Metadata (so the receiver knows what to expect)
+    global metadata_mid, metadata_sent_time
     metadata = {"filename": filename, "total_chunks": total_chunks}
-    client.publish(TOPIC_CTRL, json.dumps(metadata), qos=qos_level)
 
-def send_chunks(filepath, total_chunks):
+    metadata_sent_time = time.perf_counter()
+    msg_info = client.publish(TOPIC_CTRL, json.dumps(metadata), qos=qos_level)
+    metadata_mid = msg_info.mid
+    return msg_info
+
+def send_chunks(filepath, total_chunks, qos_level):
     # 2. Send the Chunks
     with open(filepath, "rb") as f:
         for chunk_num in range(total_chunks):
@@ -58,21 +74,24 @@ def load_files():
     return files
 
 def send_file(filename, qos_level):
+    global ack_latency
     filepath = os.path.join(DATA_DIR, filename)
     if not os.path.exists(filepath):
         print(f"File {filepath} not found.")
         return
 
     file_size, total_chunks = calculate_total_chunks(filepath)
-
     print(f"\n--- Starting transfer: {filename} ({file_size / 1024 / 1024:.2f} MB) ---")
+
+    ack_latency = 0
+    msg_info = send_metadata(filename, total_chunks, qos_level)
+
+    while ack_latency == 0:
+        time.sleep(0.01)
 
     start_time = time.time()
 
-    send_metadata(filename, total_chunks, qos_level)
-    time.sleep(0.5)  # Give the receiver a moment to open the file
-
-    send_chunks(filepath, total_chunks)
+    send_chunks(filepath, total_chunks, qos_level)
 
     end_time = time.time()
     duration = end_time - start_time
@@ -83,12 +102,14 @@ def send_file(filename, qos_level):
          'side': 'sender',
          'file_size': file_size / (1024 * 1024),
          'sender_duration': f"{duration:.2f}",
-         'receiver_duration': "X"}
+         'receiver_duration': "X",
+         'latency': f"{ack_latency:.4f}"
+         }
     ]
     write_to_file_mqtt(measurements)
 
     print("Finished sending file.")
-    print(f"Sender Time: {duration:.2f} seconds ({(file_size / (1024 * 1024)) / duration:.2f} MB/s)")
+    print(f"Latency: {ack_latency:.4f}s | Sender Time: {duration:.2f}s")
 
 def qos_levels_loop(files):
     for qos_level in range (0, 3):

@@ -16,19 +16,23 @@ expected_chunks = 0
 received_chunks = 0
 current_filename = ""
 received_bytes = 0
+first_chunk_received = False
 
-# Time measurement
-start_time = 0
+# Measurements
+start_latency = 0
+metadata_arrival_time = 0
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def transfer_completed_handler():
+    global start_latency
     end_time = time.time()
-    transfer_duration = end_time - start_time
+    transfer_duration = end_time - start_latency
     file_size_mb = received_bytes / (1024 * 1024)
 
     print(f"File {current_filename} transfer complete and saved!")
+    print(f"Latency (Start Lag): {start_latency:.4f}s")
     print(f"Receiver Time: {transfer_duration:.2f} seconds ({file_size_mb / transfer_duration:.2f} MB/s)")
 
     measurements = [
@@ -37,7 +41,9 @@ def transfer_completed_handler():
          'side': 'receiver',
          'file_size': file_size_mb,
          'sender_duration': "X",
-         'receiver_duration': f"{transfer_duration:.2f}"}
+         'receiver_duration': f"{transfer_duration:.2f}",
+         'latency': f"{start_latency:.4f}"
+         }
     ]
     write_to_file_mqtt(measurements)
 
@@ -48,16 +54,20 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     global current_file_handle, expected_chunks, received_chunks, \
-        current_filename, start_time, received_bytes
+        current_filename, start_latency, received_bytes, metadata_arrival_time, first_chunk_received, start_latency
 
     # Handle Metadata Message
     if msg.topic == TOPIC_CTRL:
+        metadata_arrival_time = time.perf_counter()
+        first_chunk_received = False
+
         metadata = json.loads(msg.payload.decode())
         current_filename = metadata["filename"]
         expected_chunks = metadata["total_chunks"]
         received_chunks = 0
+        received_bytes = 0
 
-        start_time = time.time()
+        start_latency = time.time()
 
         filepath = os.path.join(OUTPUT_DIR, current_filename)
         print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks). Opening {filepath}...")
@@ -69,6 +79,12 @@ def on_message(client, userdata, msg):
 
     # Handle Raw Binary Chunk Message
     elif msg.topic == TOPIC_DATA and current_file_handle is not None:
+        if not first_chunk_received:
+            # Calculate the time since we got the metadata
+            start_latency = time.perf_counter() - metadata_arrival_time
+            first_chunk_received = True
+            print(f"First chunk arrived. Latency: {start_latency:.4f}s")
+
         current_file_handle.write(msg.payload)
         received_chunks += 1
         received_bytes += len(msg.payload)
