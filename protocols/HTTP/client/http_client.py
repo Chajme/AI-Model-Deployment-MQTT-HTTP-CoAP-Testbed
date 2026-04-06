@@ -43,6 +43,21 @@ def measure_network_latency():
 
     return network_latency
 
+
+def calculate_payload_overhead(response):
+    # 1. Request Line: "PUT /upload/file.bin HTTP/1.1\r\n"
+    # We estimate this string length
+    request_line = f"{response.request.method} {response.request.url} HTTP/1.1\r\n"
+
+    # 2. Request Headers: "Host: ...\r\nContent-Length: ...\r\n"
+    # Each header is "Key: Value\r\n", plus an extra \r\n at the end
+    req_headers_bytes = sum(len(k) + len(v) + 4 for k, v in response.request.headers.items()) + 2
+
+    # 3. Response Headers (The 'tax' on the return trip)
+    res_headers_bytes = sum(len(k) + len(v) + 4 for k, v in response.headers.items()) + 2
+
+    return len(request_line) + req_headers_bytes + res_headers_bytes
+
 def transfer_binary_files():
     files = load_files()
     if not files:
@@ -66,12 +81,26 @@ def transfer_binary_files():
             if put_response.status_code in [201, 204]:
                 transfer_time = end_time - start_time
 
+                header_overhead = calculate_payload_overhead(put_response)
+
+                # Estimate Chunking Overhead (Requests typically uses 8KB chunks for files)
+                # Formula: (Total Bytes / 8192) * ~10 bytes for hex size + CRLFs
+                file_size_bytes = os.path.getsize(filepath)
+                chunk_overhead = (file_size_bytes / 8192) * 10
+
+                total_overhead_bytes = header_overhead + chunk_overhead
+                overhead_percentage = (total_overhead_bytes / file_size_bytes) * 100
+
                 print(f"  -> Success! Transfer took {transfer_time:.2f} seconds.")
+                print(f"  -> Latency was {latency:.2f} seconds.")
+                print(f"  -> Payload Overhead: {total_overhead_bytes:.0f} bytes ({overhead_percentage:.4f}%)")
+
                 measurements = [
                     {'protocol': 'http',
                      'file_size': file_size_mb,
                      'time_to_transfer': f"{transfer_time:.3f}",
-                     'latency': f"{latency:.5f}"
+                     'latency': f"{latency:.5f}",
+                     'payload_overhead': f"{total_overhead_bytes:.0F}"
                      }
                 ]
                 write_to_file_http(measurements)
