@@ -1,9 +1,16 @@
 import asyncio
+import math
 import time
 import os
 from aiocoap import Message, Context, PUT, GET
+from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 
 from output.write_csv import write_to_file_coap
+
+# Block-wise transfer uses 2^(4+szx) byte blocks; default szx matches MAX_REGULAR_BLOCK_SIZE_EXP (1024 B).
+_BLOCK_SIZE = 2 ** (4 + MAX_REGULAR_BLOCK_SIZE_EXP)
+# Approximate extra bytes per additional PUT datagram (header + token + Block1 + payload marker).
+_EXTRA_FRAMING_PER_BLOCK = 24
 
 DATA_DIR = "/app/data"
 SERVER_URI = "coap://coap-server/upload"
@@ -35,6 +42,21 @@ def load_files():
 
     return files
 
+
+def calculate_payload_overhead(request_msg: Message, response_msg: Message, file_size_bytes: int) -> float:
+    """Non-payload CoAP bytes: logical encode (URI/options) plus repeated framing for block-wise PUTs."""
+    try:
+        req_oh = len(request_msg.encode()) - file_size_bytes
+        res_payload_len = len(response_msg.payload or b"")
+        res_oh = len(response_msg.encode()) - res_payload_len
+    except Exception:
+        req_oh = 48.0
+        res_oh = 32.0
+    num_blocks = max(1, math.ceil(file_size_bytes / _BLOCK_SIZE))
+    block_extra = (num_blocks - 1) * _EXTRA_FRAMING_PER_BLOCK
+    return req_oh + res_oh + block_extra
+
+
 async def transfer_file(context, filename):
     filepath = os.path.join(DATA_DIR, filename)
     if not os.path.exists(filepath):
@@ -65,11 +87,17 @@ async def transfer_file(context, filename):
         print(f"Latency (Time to Start): {latency:.4f}s")
         print(f"CoAP Time: {transfer_time:.2f}s ({file_size_mb / transfer_time:.2f} MB/s)")
 
+        file_size_bytes = len(payload)
+        total_overhead_bytes = calculate_payload_overhead(request, response, file_size_bytes)
+        overhead_pct = (total_overhead_bytes / file_size_bytes) * 100 if file_size_bytes else 0.0
+        print(f"  -> Payload Overhead: {total_overhead_bytes:.0f} bytes ({overhead_pct:.4f}%)")
+
         measurements = [
             {'protocol': "coap",
              'file_size': file_size_mb,
              'time_to_transfer': f"{transfer_time:.2f}",
-             'latency': f"{latency:.4f}"
+             'latency': f"{latency:.4f}",
+             'payload_overhead': f"{total_overhead_bytes:.0F}",
             }
         ]
 
