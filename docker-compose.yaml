@@ -1,62 +1,62 @@
 services:
 
   # MQTT
-#  mosquitto-broker:
-#    image: eclipse-mosquitto:latest
-#    ports:
-#      - "1883:1883"
-#    volumes:
-#      - ./protocols/MQTT/mosquitto.conf:/mosquitto-broker/mosquitto.conf
-#
-#  mqtt-client-a:
-#    build: ./
-#    command: python -m protocols.MQTT.clients.mqtt_client_a
-#    depends_on:
-#      - mosquitto-broker
-#    volumes:
-#      - ./output:/app/output
-#      - ./:/app
-#
-#  mqtt-client-b:
-#    build: ./
-#    command: python -m protocols.MQTT.clients.mqtt_client_b
-#    depends_on:
-#      - mosquitto-broker
-#    volumes:
-#      - ./output:/app/output
-#      - ./:/app
-
-# HTTP
-  http-server:
-    image: nginx:alpine
+  mosquitto-broker:
+    image: eclipse-mosquitto:latest
     ports:
-      - "8000:80"
+      - "1883:1883"
     volumes:
-      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./uploads:/var/www/uploads/upload
+      - ./protocols/MQTT/mosquitto.conf:/mosquitto-broker/mosquitto.conf
 
-  http-client:
-    build: .
-    command: python -m protocols.HTTP.client.http_client
+  mqtt-client-a:
+    build: ./
+    command: python -m protocols.MQTT.clients.mqtt_client_a
     depends_on:
-      - http-server
+      - mosquitto-broker
     volumes:
       - ./output:/app/output
+      - ./:/app
 
-# CoAP
-#  coap-server:
-#    build: .
-#    command: python -m protocols.CoAP.server.coap_server
+  mqtt-client-b:
+    build: ./
+    command: python -m protocols.MQTT.clients.mqtt_client_b
+    depends_on:
+      - mosquitto-broker
+    volumes:
+      - ./output:/app/output
+      - ./:/app
+
+# HTTP
+#  http-server:
+#    image: nginx:alpine
 #    ports:
-#      - "5683:5683/udp"
+#      - "8000:80"
+#    volumes:
+#      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+#      - ./uploads:/var/www/uploads/upload
+#
+#  http-client:
+#    build: .
+#    command: python -m protocols.HTTP.client.http_client
+#    depends_on:
+#      - http-server
 #    volumes:
 #      - ./output:/app/output
-#      - ./:/app
-#
-#  coap-client:
-#    build: .
-#    command: python -m protocols.CoAP.client.coap_client
-#    depends_on:
-#      - coap-server
-#    volumes:
-#      - ./:/app
+
+# CoAP
+  coap-server:
+    build: .
+    command: python -m protocols.CoAP.server.coap_server
+    ports:
+      - "5683:5683/udp"
+    volumes:
+      - ./output:/app/output
+      - ./:/app
+
+  coap-client:
+    build: .
+    command: python -m protocols.CoAP.client.coap_client
+    depends_on:
+      - coap-server
+    volumes:
+      - ./:/app

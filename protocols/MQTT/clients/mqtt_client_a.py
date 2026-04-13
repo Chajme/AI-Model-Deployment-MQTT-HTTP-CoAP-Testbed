@@ -14,6 +14,37 @@ DATA_DIR = "/app/data"
 # 256 KB chunk size is generally safe for Mosquitto defaults
 CHUNK_SIZE = 256 * 1024
 
+
+def mqtt_publish_packet_bytes(topic: str, payload_len: int, qos: int) -> int:
+    """MQTT 3.1.1 PUBLISH: fixed header + remaining-length encoding + variable header + payload."""
+    topic_b = topic.encode("utf-8")
+    var_header = 2 + len(topic_b) + (2 if qos > 0 else 0)
+    remaining_length = var_header + payload_len
+    rl_bytes = 0
+    x = remaining_length
+    while True:
+        rl_bytes += 1
+        x //= 128
+        if x == 0:
+            break
+    return 1 + rl_bytes + remaining_length
+
+
+def mqtt_transfer_overhead_bytes(
+    topic_ctrl: str,
+    topic_data: str,
+    metadata_payload_len: int,
+    chunk_payload_lens: list[int],
+    qos_level: int,
+    file_size_bytes: int,
+) -> float:
+    """Wire bytes for all PUBLISH packets minus file payload (metadata + MQTT framing)."""
+    total_wire = mqtt_publish_packet_bytes(topic_ctrl, metadata_payload_len, qos_level)
+    for plen in chunk_payload_lens:
+        total_wire += mqtt_publish_packet_bytes(topic_data, plen, qos_level)
+    return float(total_wire - file_size_bytes)
+
+
 metadata_mid = None
 metadata_sent_time = 0
 ack_latency = 0
@@ -46,10 +77,11 @@ def send_metadata(filename, total_chunks, qos_level):
     return msg_info
 
 def send_chunks(filepath, total_chunks, qos_level):
-    # 2. Send the Chunks
+    chunk_lengths = []
     with open(filepath, "rb") as f:
         for chunk_num in range(total_chunks):
             chunk = f.read(CHUNK_SIZE)
+            chunk_lengths.append(len(chunk))
 
             # Using QoS 1 ensures the broker confirms receipt of the chunk
             client.publish(TOPIC_DATA, bytearray(chunk), qos=qos_level)
@@ -60,6 +92,7 @@ def send_chunks(filepath, total_chunks, qos_level):
 
             # Tiny sleep to avoid completely flooding the broker
             time.sleep(0.01)
+    return chunk_lengths
 
 def load_files():
     if not os.path.exists(DATA_DIR):
@@ -85,16 +118,29 @@ def send_file(filename, qos_level):
 
     ack_latency = 0
     msg_info = send_metadata(filename, total_chunks, qos_level)
+    metadata_json = json.dumps({"filename": filename, "total_chunks": total_chunks})
+    metadata_payload_len = len(metadata_json.encode("utf-8"))
 
     while ack_latency == 0:
         time.sleep(0.01)
 
     start_time = time.time()
 
-    send_chunks(filepath, total_chunks, qos_level)
+    chunk_lengths = send_chunks(filepath, total_chunks, qos_level)
 
     end_time = time.time()
     duration = end_time - start_time
+
+    overhead_bytes = mqtt_transfer_overhead_bytes(
+        TOPIC_CTRL,
+        TOPIC_DATA,
+        metadata_payload_len,
+        chunk_lengths,
+        qos_level,
+        file_size,
+    )
+    overhead_pct = (overhead_bytes / file_size) * 100 if file_size else 0.0
+    print(f"  -> Payload Overhead: {overhead_bytes:.0f} bytes ({overhead_pct:.4f}%)")
 
     measurements = [
         {'protocol': 'mqtt',
@@ -103,7 +149,8 @@ def send_file(filename, qos_level):
          'file_size': file_size / (1024 * 1024),
          'sender_duration': f"{duration:.2f}",
          'receiver_duration': "X",
-         'latency': f"{ack_latency:.4f}"
+         'latency': f"{ack_latency:.4f}",
+         'payload_overhead': f"{overhead_bytes:.0F}",
          }
     ]
     write_to_file_mqtt(measurements)

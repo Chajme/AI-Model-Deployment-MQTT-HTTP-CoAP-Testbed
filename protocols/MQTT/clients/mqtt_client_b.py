@@ -42,7 +42,8 @@ def transfer_completed_handler():
          'file_size': file_size_mb,
          'sender_duration': "X",
          'receiver_duration': f"{transfer_duration:.2f}",
-         'latency': f"{start_latency:.4f}"
+         'latency': f"{start_latency:.4f}",
+         'payload_overhead': "X",
          }
     ]
     write_to_file_mqtt(measurements)
