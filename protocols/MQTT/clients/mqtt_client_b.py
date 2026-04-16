@@ -21,19 +21,20 @@ first_chunk_received = False
 # Measurements
 start_latency = 0
 metadata_arrival_time = 0
+transfer_start_time = 0
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def transfer_completed_handler():
-    global start_latency
-    end_time = time.time()
-    transfer_duration = end_time - start_latency
+    global start_latency, transfer_start_time
+    transfer_duration = time.perf_counter() - transfer_start_time
     file_size_mb = received_bytes / (1024 * 1024)
 
     print(f"File {current_filename} transfer complete and saved!")
     print(f"Latency (Start Lag): {start_latency:.4f}s")
-    print(f"Receiver Time: {transfer_duration:.2f} seconds ({file_size_mb / transfer_duration:.2f} MB/s)")
+    speed = (file_size_mb / transfer_duration) if transfer_duration > 0 else 0
+    print(f"Receiver Time: {transfer_duration:.2f} seconds ({speed:.2f} MB/s)")
 
     measurements = [
         {'protocol': 'mqtt',
@@ -55,7 +56,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     global current_file_handle, expected_chunks, received_chunks, \
-        current_filename, start_latency, received_bytes, metadata_arrival_time, first_chunk_received, start_latency
+        current_filename, start_latency, received_bytes, metadata_arrival_time, first_chunk_received, transfer_start_time
 
     # Handle Metadata Message
     if msg.topic == TOPIC_CTRL:
@@ -68,7 +69,8 @@ def on_message(client, userdata, msg):
         received_chunks = 0
         received_bytes = 0
 
-        start_latency = time.time()
+        start_latency = 0
+        transfer_start_time = 0
 
         filepath = os.path.join(OUTPUT_DIR, current_filename)
         print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks). Opening {filepath}...")
@@ -83,6 +85,7 @@ def on_message(client, userdata, msg):
         if not first_chunk_received:
             # Calculate the time since we got the metadata
             start_latency = time.perf_counter() - metadata_arrival_time
+            transfer_start_time = time.perf_counter()
             first_chunk_received = True
             print(f"First chunk arrived. Latency: {start_latency:.4f}s")
 

@@ -27,21 +27,22 @@ services:
       - ./:/app
 
 # HTTP
-#  http-server:
-#    image: nginx:alpine
-#    ports:
-#      - "8000:80"
-#    volumes:
-#      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-#      - ./uploads:/var/www/uploads/upload
-#
-#  http-client:
-#    build: .
-#    command: python -m protocols.HTTP.client.http_client
-#    depends_on:
-#      - http-server
-#    volumes:
-#      - ./output:/app/output
+  http-server:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./uploads:/var/www/uploads/upload
+
+  http-client:
+    build: .
+    command: python -m protocols.HTTP.client.http_client
+    depends_on:
+      - http-server
+    volumes:
+      - ./output:/app/output
+      - ./:/app
 
 # CoAP
   coap-server:
