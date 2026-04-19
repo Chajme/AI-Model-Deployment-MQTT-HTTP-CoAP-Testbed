@@ -1,0 +1,6 @@
+protocol,file_size,time_to_transfer,latency,payload_overhead
+coap,1.0,1.28,0.0130,24632
+coap,20.0,195.71,0.0025,491576
+coap,0.244140625,0.16,0.0023,6056
+coap,50.0,989.62,0.0016,1228856
+coap,5.0,3.61,0.0022,122936
