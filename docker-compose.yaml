@@ -94,9 +94,9 @@ services:
       - netem
       - --duration
       - 60s
-      - rate
-      - --rate
-      - "1mbit"
+#      - rate
+#      - --rate
+#      - "1mbit"
       - delay
       - --time
       - "150"
