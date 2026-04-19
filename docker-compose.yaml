@@ -77,26 +77,20 @@ services:
   # ========================
   # CHAOS ENGINE (Pumba)
   # ========================
-  pumba:
-    image: gaiaadm/pumba:latest
-    container_name: pumba
+  pumba-delay:
+    image: ghcr.io/alexei-led/pumba:latest
     depends_on:
       - http-client
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - iot-net
-
-    # --- CHAOS PROFILE: Moderate IoT network (4G-like) ---
     command:
       - --interval
       - 120s
       - netem
       - --duration
       - 60s
-#      - rate
-#      - --rate
-#      - "1mbit"
       - delay
       - --time
       - "150"
@@ -104,6 +98,9 @@ services:
       - "50"
       - --correlation
       - "25"
+      - rate
+      - --rate
+      - 1mbit
       - re2:.*(client|server).*
 
     # Alternative profiles (uncomment to switch):
