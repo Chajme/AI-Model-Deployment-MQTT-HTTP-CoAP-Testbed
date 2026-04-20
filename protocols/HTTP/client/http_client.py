@@ -65,6 +65,8 @@ def transfer_binary_files():
 
     # Loop through and stream each file
     for filename in files:
+        time.sleep(3)
+
         filepath = os.path.join(DATA_DIR, filename)
         upload_url = f"{BASE_URL}/upload/{filename}"
         file_size_mb = calculate_logging_size(filepath, filename)

@@ -159,7 +159,7 @@ def send_file(filename, qos_level):
     print(f"Latency: {ack_latency:.4f}s | Sender Time: {duration:.2f}s")
 
 def qos_levels_loop(files):
-    for qos_level in range (0, 3):
+    for qos_level in range (1, 3):
         for filename in files:
             send_file(filename, qos_level)
 
