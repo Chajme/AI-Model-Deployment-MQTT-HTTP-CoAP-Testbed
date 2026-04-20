@@ -58,7 +58,7 @@ def on_publish(client, userdata, mid):
 
 client = mqtt.Client()
 client.on_publish = on_publish
-client.connect(BROKER, 1883, 60)
+client.connect(BROKER, 1883, 300)
 client.loop_start()
 
 def calculate_total_chunks(filepath):
