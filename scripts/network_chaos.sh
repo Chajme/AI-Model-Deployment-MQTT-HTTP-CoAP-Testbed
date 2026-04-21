@@ -102,37 +102,3 @@ tc qdisc show dev eth0
 echo "[app] Starting: $APP_COMMAND"
 exec sh -c "$APP_COMMAND"
 
-
-##!/bin/sh
-#set -e
-#
-#echo "[tc] Applying network chaos..."
-#
-## Clean up if already exists (important for restarts)
-#tc qdisc del dev eth0 root 2>/dev/null || true
-#
-## Apply your profile
-##tc qdisc add dev eth0 root netem \
-##  delay 200ms 100ms 30% \
-##  loss 2% 25% \
-##  duplicate 0.5% \
-##  reorder 0.2% 50% \
-##  rate 512kbit \
-##  limit 1000
-#tc qdisc add dev eth0 root handle 1: netem \
-#  delay 200ms 100ms 30% \
-#  loss 2% 25% \
-#  duplicate 0.5% \
-#  reorder 0.2% 50%
-#
-#tc qdisc add dev eth0 parent 1:1 handle 10: tbf \
-#  rate 512kbit \
-#  burst 32kbit \
-#  latency 400ms
-#
-#echo "[tc] Current qdisc:"
-#tc qdisc show dev eth0
-#
-#echo "[app] Starting client..."
-#exec python -m protocols.HTTP.client.http_client
-
