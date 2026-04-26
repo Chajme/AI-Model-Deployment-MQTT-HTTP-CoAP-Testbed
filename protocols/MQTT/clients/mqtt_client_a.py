@@ -78,13 +78,15 @@ def send_metadata(filename, total_chunks, qos_level):
 
 def send_chunks(filepath, total_chunks, qos_level):
     chunk_lengths = []
+    # Waiting for broker to ACK the final message before stopping the clock
+    last_msg_info = None
     with open(filepath, "rb") as f:
         for chunk_num in range(total_chunks):
             chunk = f.read(CHUNK_SIZE)
             chunk_lengths.append(len(chunk))
 
             # Using QoS 1 ensures the broker confirms receipt of the chunk
-            client.publish(TOPIC_DATA, bytearray(chunk), qos=qos_level)
+            last_msg_info = client.publish(TOPIC_DATA, bytearray(chunk), qos=qos_level)
 
             # Simple progress print
             if chunk_num % 10 == 0 or chunk_num == total_chunks - 1:
@@ -92,6 +94,9 @@ def send_chunks(filepath, total_chunks, qos_level):
 
             # Tiny sleep to avoid completely flooding the broker
             time.sleep(0.01)
+
+            if last_msg_info is not None:
+                last_msg_info.wait_for_publish(timeout=60)
     return chunk_lengths
 
 def load_files():
@@ -159,7 +164,7 @@ def send_file(filename, qos_level):
     print(f"Latency: {ack_latency:.4f}s | Sender Time: {duration:.2f}s")
 
 def qos_levels_loop(files):
-    for qos_level in range (1, 3):
+    for qos_level in range (0, 3):
         for filename in files:
             send_file(filename, qos_level)
 
