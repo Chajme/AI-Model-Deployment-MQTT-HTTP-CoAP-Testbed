@@ -3,45 +3,45 @@ services:
 #  # ========================
 #  # MQTT
 #  # ========================
-#  mosquitto-broker:
-#    image: eclipse-mosquitto:latest
-#    ports:
-#      - "1883:1883"
-#    networks:
-#      - mqtt-net
-#    volumes:
-#      - ./protocols/MQTT/mosquitto.conf:/mosquitto-broker/mosquitto.conf
-#
-#  mqtt-client-a:
-#    build: ./
-#    command: python -m protocols.MQTT.clients.mqtt_client_a
-#    cap_add:
-#      - NET_ADMIN
-##    command: [ "/app/scripts/network_chaos.sh" ]
-#    depends_on:
-#      - mosquitto-broker
-#    volumes:
-#      - ./output:/app/output
-#      - ./:/app
-#    networks:
-#      - mqtt-net
-#    environment:
-#      - APP_COMMAND=python -m protocols.MQTT.clients.mqtt_client_a
-##      - NETWORK_PROFILE=iot   # or good/harsh/mobile/satellite
-#      - MEASUREMENT_SUFFIX=_added-wait-for-ack
-#
-#  mqtt-client-b:
-#    build: ./
-#    command: python -m protocols.MQTT.clients.mqtt_client_b
-#    depends_on:
-#      - mosquitto-broker
-#    volumes:
-#      - ./output:/app/output
-#      - ./:/app
-#    networks:
-#      - mqtt-net
-#    environment:
-#      - MEASUREMENT_SUFFIX=_added-wait-for-ack
+  mosquitto-broker:
+    image: eclipse-mosquitto:latest
+    ports:
+      - "1883:1883"
+    networks:
+      - mqtt-net
+    volumes:
+      - ./protocols/MQTT/mosquitto.conf:/mosquitto-broker/mosquitto.conf
+
+  mqtt-client-a:
+    build: ./
+    command: python -m protocols.MQTT.clients.mqtt_client_a
+    cap_add:
+      - NET_ADMIN
+#    command: [ "/app/scripts/network_chaos.sh" ]
+    depends_on:
+      - mosquitto-broker
+    volumes:
+      - ./output:/app/output
+      - ./:/app
+    networks:
+      - mqtt-net
+    environment:
+      - APP_COMMAND=python -m protocols.MQTT.clients.mqtt_client_a
+#      - NETWORK_PROFILE=iot   # or good/harsh/mobile/satellite
+      - MEASUREMENT_SUFFIX=_1024kb-chunk-size
+
+  mqtt-client-b:
+    build: ./
+    command: python -m protocols.MQTT.clients.mqtt_client_b
+    depends_on:
+      - mosquitto-broker
+    volumes:
+      - ./output:/app/output
+      - ./:/app
+    networks:
+      - mqtt-net
+    environment:
+      - MEASUREMENT_SUFFIX=_1024kb-chunk-size
 
   # ========================
   # HTTP
@@ -76,36 +76,36 @@ services:
 #  # ========================
 #  # CoAP
 #  # ========================
-  coap-server:
-    build: .
-    command: python -m protocols.CoAP.server.coap_server
-    ports:
-      - "5683:5683/udp"
-    volumes:
-      - ./output:/app/output
-      - ./:/app
-    networks:
-      - coap-net
-    environment:
-      - MEASUREMENT_SUFFIX=_increased_block-size
-
-  coap-client:
-    build: .
-    command: python -m protocols.CoAP.client.coap_client_v2
-    cap_add:
-      - NET_ADMIN
-#    command: [ "/app/scripts/network_chaos.sh" ]
-    depends_on:
-      - coap-server
-    volumes:
-      - ./:/app
-      - ./output:/app/output
-    networks:
-      - coap-net
-    environment:
-      - MEASUREMENT_SUFFIX=_increased_block-size
-#      - APP_COMMAND=python -m protocols.CoAP.client.coap_client
-#      - NETWORK_PROFILE=iot
+#  coap-server:
+#    build: .
+#    command: python -m protocols.CoAP.server.coap_server
+#    ports:
+#      - "5683:5683/udp"
+#    volumes:
+#      - ./output:/app/output
+#      - ./:/app
+#    networks:
+#      - coap-net
+#    environment:
+#      - MEASUREMENT_SUFFIX=_increased_block-size
+#
+#  coap-client:
+#    build: .
+#    command: python -m protocols.CoAP.client.coap_client_v2
+#    cap_add:
+#      - NET_ADMIN
+##    command: [ "/app/scripts/network_chaos.sh" ]
+#    depends_on:
+#      - coap-server
+#    volumes:
+#      - ./:/app
+#      - ./output:/app/output
+#    networks:
+#      - coap-net
+#    environment:
+#      - MEASUREMENT_SUFFIX=_increased_block-size
+##      - APP_COMMAND=python -m protocols.CoAP.client.coap_client
+##      - NETWORK_PROFILE=iot
 
 networks:
   mqtt-net:

@@ -12,8 +12,9 @@ TOPIC_DATA = "file/data"
 DATA_DIR = "/app/data"
 
 # 256 KB chunk size is generally safe for Mosquitto defaults
-CHUNK_SIZE = 256 * 1024
-
+# CHUNK_SIZE = 256 * 1024
+# CHUNK_SIZE = 512 * 1024
+CHUNK_SIZE = 1024 * 1024
 
 def mqtt_publish_packet_bytes(topic: str, payload_len: int, qos: int) -> int:
     """MQTT 3.1.1 PUBLISH: fixed header + remaining-length encoding + variable header + payload."""
