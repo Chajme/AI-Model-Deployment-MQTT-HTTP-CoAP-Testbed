@@ -37,5 +37,5 @@ def write_to_file_mqtt(data: list[dict]):
 
 def write_to_file_coap(data: list[dict]):
     output_path = _measurement_file("coap")
-    fieldnames = ['protocol', 'file_size', 'time_to_transfer', 'latency', 'payload_overhead']
+    fieldnames = ['protocol', 'file_size', 'time_to_transfer', 'latency', 'payload_overhead', 'integrity']
     write_to_csv(output_path, fieldnames, data)

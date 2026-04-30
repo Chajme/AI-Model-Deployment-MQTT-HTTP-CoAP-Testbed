@@ -1,3 +1,4 @@
+import hashlib
 import asyncio
 import aiocoap.resource as resource
 import aiocoap
@@ -6,17 +7,33 @@ import os
 OUTPUT_DIR = "/app/output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+def compute_sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
 class BinaryUploadResource(resource.Resource):
     async def render_put(self, request):
         # Extract filename from the query string (e.g., ?file=my_model.bin)
         filename = "unknown.bin"
+        expected_checksum = None
+
         for query in request.opt.uri_query:
             if query.startswith("file="):
                 filename = query.split("=")[1]
+            elif query.startswith("checksum="):
+                expected_checksum = query.split("=")[1]
 
         filepath = os.path.join(OUTPUT_DIR, filename)
 
         print(f"--- CoAP: Receiving file '{filename}' ({len(request.payload)} bytes) ---")
+
+        actual_checksum = compute_sha256(request.payload)
+
+        if expected_checksum and actual_checksum != expected_checksum:
+            print(f"Checksum mismatch for {filename}!")
+            return aiocoap.Message(
+                code=aiocoap.BAD_REQUEST,
+                payload=b"Checksum mismatch"
+            )
 
         with open(filepath, "wb") as f:
             f.write(request.payload)
