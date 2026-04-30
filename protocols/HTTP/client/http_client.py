@@ -1,11 +1,20 @@
 import requests
 import time
 import os
+import hashlib
 
 from output.write_csv import write_to_file_http
 
 BASE_URL = "http://http-server"
 DATA_DIR = "/app/data"
+
+
+def compute_sha256(filepath):
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(1024 * 1024):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 def load_files():
     print(f"\n--- Phase 1: Scanning {DATA_DIR} for Binary Files ---")
@@ -68,6 +77,7 @@ def transfer_binary_files():
         time.sleep(3)
 
         filepath = os.path.join(DATA_DIR, filename)
+        checksum = compute_sha256(filepath)
         upload_url = f"{BASE_URL}/upload/{filename}"
         file_size_mb = calculate_logging_size(filepath, filename)
 
@@ -77,39 +87,46 @@ def transfer_binary_files():
             # 'rb' mode combined with data=file_stream ensures chunked streaming (Low RAM usage)
             with open(filepath, "rb") as file_stream:
                 start_time = time.time()
-                put_response = requests.put(upload_url, data=file_stream)
+                # put_response = requests.put(upload_url, data=file_stream)
+                put_response = requests.put(
+                    upload_url,
+                    data=file_stream,
+                    headers={"X-Checksum": checksum}
+                )
                 end_time = time.time()
 
-            if put_response.status_code in [201, 204]:
-                transfer_time = end_time - start_time
+            integrity_ok = (put_response.status_code == 200)
 
-                header_overhead = calculate_payload_overhead(put_response)
+            transfer_time = end_time - start_time
 
-                # Estimate Chunking Overhead (Requests typically uses 8KB chunks for files)
-                # Formula: (Total Bytes / 8192) * ~10 bytes for hex size + CRLFs
-                file_size_bytes = os.path.getsize(filepath)
-                chunk_overhead = (file_size_bytes / 8192) * 10
+            header_overhead = calculate_payload_overhead(put_response)
 
-                total_overhead_bytes = header_overhead + chunk_overhead
+            # Estimate Chunking Overhead (Requests typically uses 8KB chunks for files)
+            # Formula: (Total Bytes / 8192) * ~10 bytes for hex size + CRLFs
+            file_size_bytes = os.path.getsize(filepath)
+            chunk_overhead = (file_size_bytes / 8192) * 10
+
+            total_overhead_bytes = header_overhead + chunk_overhead
+
+            if integrity_ok:
                 overhead_percentage = (total_overhead_bytes / file_size_bytes) * 100
-
                 print(f"  -> Success! Transfer took {transfer_time:.2f} seconds.")
                 print(f"  -> Latency was {latency:.2f} seconds.")
-                print(f"  -> Payload Overhead: {total_overhead_bytes:.0f} bytes ({overhead_percentage:.4f}%)")
-
-                measurements = [
-                    {'protocol': 'http',
-                     'file_size': file_size_mb,
-                     'time_to_transfer': f"{transfer_time:.3f}",
-                     'latency': f"{latency:.5f}",
-                     'payload_overhead': f"{total_overhead_bytes:.0F}"
-                     }
-                ]
-                write_to_file_http(measurements)
-
+                print(f"  -> Integrity OK: {integrity_ok}")
             else:
                 print(f"  -> Failed. Status: {put_response.status_code}")
-                print(f"  -> Response: {put_response.text}")
+                print(f"  -> Integrity OK: {integrity_ok}")
+
+            measurements = [
+                {'protocol': 'http',
+                 'file_size': file_size_mb,
+                 'time_to_transfer': f"{transfer_time:.3f}",
+                 'latency': f"{latency:.5f}",
+                 'payload_overhead': f"{total_overhead_bytes:.0F}",
+                 'integrity_ok': integrity_ok
+                 }
+            ]
+            write_to_file_http(measurements)
 
         except Exception as e:
             print(f"  -> Error transferring {filename}: {e}")
