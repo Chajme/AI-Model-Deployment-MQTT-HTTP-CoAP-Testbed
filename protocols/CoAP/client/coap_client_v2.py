@@ -112,7 +112,7 @@ async def transfer_file(context, filename):
         "time_to_transfer": f"{transfer_time:.2f}",
         "latency": f"{latency:.4f}",
         "payload_overhead": f"{total_overhead:.0f}",
-        "integrity": integrity_ok
+        "integrity_ok": integrity_ok
     }])
 
 
