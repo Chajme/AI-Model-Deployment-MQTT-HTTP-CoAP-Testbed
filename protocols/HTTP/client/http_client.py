@@ -5,7 +5,7 @@ import hashlib
 
 from output.write_csv import write_to_file_http
 
-BASE_URL = "http://http-server"
+BASE_URL = "http://http-server:8000"
 DATA_DIR = "/app/data"
 
 

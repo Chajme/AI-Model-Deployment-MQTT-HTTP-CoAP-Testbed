@@ -24,7 +24,7 @@ def write_to_csv(output_path: str, fieldnames: list, data: list[dict]):
 
 def write_to_file_http(data: list[dict]):
     output_path = _measurement_file("http")
-    fieldnames = ['protocol', 'file_size', 'time_to_transfer', 'latency', 'payload_overhead']
+    fieldnames = ['protocol', 'file_size', 'time_to_transfer', 'latency', 'payload_overhead', 'integrity_ok']
     write_to_csv(output_path, fieldnames, data)
 
 def write_to_file_mqtt(data: list[dict]):
