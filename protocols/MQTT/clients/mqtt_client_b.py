@@ -23,15 +23,34 @@ start_latency = 0
 metadata_arrival_time = 0
 transfer_start_time = 0
 
+expected_checksum = None
+
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+def compute_sha256_file(filepath: str) -> str:
+    import hashlib
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(1024 * 1024):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
 def transfer_completed_handler():
-    global start_latency, transfer_start_time
+    global start_latency, transfer_start_time, expected_checksum
+
     transfer_duration = time.perf_counter() - transfer_start_time
     file_size_mb = received_bytes / (1024 * 1024)
 
-    print(f"File {current_filename} transfer complete and saved!")
+    filepath = os.path.join(OUTPUT_DIR, current_filename)
+
+    actual_checksum = compute_sha256_file(filepath)
+    integrity_ok = (expected_checksum == actual_checksum)
+
+    if integrity_ok:
+        print(f"File {current_filename} OK (checksum match)")
+    else:
+        print(f"File {current_filename} CORRUPTED (checksum mismatch)")
     print(f"Latency (Start Lag): {start_latency:.4f}s")
     speed = (file_size_mb / transfer_duration) if transfer_duration > 0 else 0
     print(f"Receiver Time: {transfer_duration:.2f} seconds ({speed:.2f} MB/s)")
@@ -45,6 +64,7 @@ def transfer_completed_handler():
          'receiver_duration': f"{transfer_duration:.2f}",
          'latency': f"{start_latency:.4f}",
          'payload_overhead': "X",
+         'integrity_ok': integrity_ok
          }
     ]
     write_to_file_mqtt(measurements)
@@ -56,7 +76,8 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     global current_file_handle, expected_chunks, received_chunks, \
-        current_filename, start_latency, received_bytes, metadata_arrival_time, first_chunk_received, transfer_start_time
+        current_filename, start_latency, received_bytes, metadata_arrival_time, \
+        first_chunk_received, transfer_start_time, expected_checksum
 
     # Handle Metadata Message
     if msg.topic == TOPIC_CTRL:
@@ -71,6 +92,8 @@ def on_message(client, userdata, msg):
 
         start_latency = 0
         transfer_start_time = 0
+
+        expected_checksum = metadata.get("checksum")
 
         filepath = os.path.join(OUTPUT_DIR, current_filename)
         print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks). Opening {filepath}...")

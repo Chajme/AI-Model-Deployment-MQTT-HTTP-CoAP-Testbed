@@ -1,3 +1,4 @@
+import hashlib
 import asyncio
 import math
 import time
@@ -18,6 +19,9 @@ DATA_DIR = "/app/data"
 SERVER_URI = "coap://coap-server/upload"
 MAX_RETRIES = 3
 
+
+def compute_sha256(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
 async def get_latency(context, uri):
     try:
@@ -63,6 +67,8 @@ async def transfer_file(context, filename):
     with open(filepath, "rb") as f:
         payload = f.read()
 
+        checksum = compute_sha256(payload)
+
     file_size_bytes = len(payload)
     file_size_mb = file_size_bytes / (1024 * 1024)
     print(f"\n--- CoAP Transfer: {filename} ({file_size_mb:.2f} MB) ---")
@@ -76,7 +82,8 @@ async def transfer_file(context, filename):
             request = Message(
                 code=PUT,
                 payload=payload,
-                uri=f"{SERVER_URI}?file={filename}",
+                # uri=f"{SERVER_URI}?file={filename}",
+                uri=f"{SERVER_URI}?file={filename}&checksum={checksum}",
             )
             t0 = time.time()
             response = await context.request(request).response
@@ -91,6 +98,10 @@ async def transfer_file(context, filename):
         print(f"  Transfer failed after {MAX_RETRIES} attempts.")
         return
 
+    integrity_ok = response.code.is_successful()
+
+
+
     total_overhead = calculate_payload_overhead(request, response, file_size_bytes)
     overhead_pct = (total_overhead / file_size_bytes) * 100
     print(f"Result: {response.code} | Time: {transfer_time:.2f}s | Retries: {retries}")
@@ -100,7 +111,8 @@ async def transfer_file(context, filename):
         "file_size": file_size_mb,
         "time_to_transfer": f"{transfer_time:.2f}",
         "latency": f"{latency:.4f}",
-        "payload_overhead": f"{total_overhead:.0f}"
+        "payload_overhead": f"{total_overhead:.0f}",
+        "integrity_ok": integrity_ok
     }])
 
 

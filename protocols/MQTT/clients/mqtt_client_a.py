@@ -1,4 +1,5 @@
 import paho.mqtt.client as mqtt
+import hashlib
 import time
 import os
 import json
@@ -15,6 +16,14 @@ DATA_DIR = "/app/data"
 # CHUNK_SIZE = 256 * 1024
 # CHUNK_SIZE = 512 * 1024
 CHUNK_SIZE = 1024 * 1024
+
+
+def compute_sha256(filepath: str) -> str:
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while chunk := f.read(1024 * 1024):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 def mqtt_publish_packet_bytes(topic: str, payload_len: int, qos: int) -> int:
     """MQTT 3.1.1 PUBLISH: fixed header + remaining-length encoding + variable header + payload."""
@@ -68,9 +77,13 @@ def calculate_total_chunks(filepath):
 
     return file_size, total_chunks
 
-def send_metadata(filename, total_chunks, qos_level):
+def send_metadata(filename, total_chunks, checksum, qos_level):
     global metadata_mid, metadata_sent_time
-    metadata = {"filename": filename, "total_chunks": total_chunks}
+    metadata = {
+        "filename": filename,
+        "total_chunks": total_chunks,
+        "checksum": checksum
+    }
 
     metadata_sent_time = time.perf_counter()
     msg_info = client.publish(TOPIC_CTRL, json.dumps(metadata), qos=qos_level)
@@ -122,8 +135,10 @@ def send_file(filename, qos_level):
     file_size, total_chunks = calculate_total_chunks(filepath)
     print(f"\n--- Starting transfer: {filename} ({file_size / 1024 / 1024:.2f} MB) ---")
 
+    checksum = compute_sha256(filepath)
+
     ack_latency = 0
-    msg_info = send_metadata(filename, total_chunks, qos_level)
+    msg_info = send_metadata(filename, total_chunks, checksum, qos_level)
     metadata_json = json.dumps({"filename": filename, "total_chunks": total_chunks})
     metadata_payload_len = len(metadata_json.encode("utf-8"))
 
