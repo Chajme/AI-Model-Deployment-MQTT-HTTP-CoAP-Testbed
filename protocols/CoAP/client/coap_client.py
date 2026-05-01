@@ -1,4 +1,3 @@
-import hashlib
 import asyncio
 import math
 import time
@@ -6,6 +5,7 @@ import os
 from aiocoap import Message, Context, PUT, GET
 from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 
+from output.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_coap
 
 # Use the largest standard CoAP block: SZX=6 -> 2^(4+6) = 1024 bytes
@@ -18,10 +18,6 @@ _EXTRA_FRAMING_PER_BLOCK = 24
 DATA_DIR = "/app/data"
 SERVER_URI = "coap://coap-server/upload"
 MAX_RETRIES = 3
-
-
-def compute_sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 async def get_latency(context, uri):
     try:
@@ -67,7 +63,7 @@ async def transfer_file(context, filename):
     with open(filepath, "rb") as f:
         payload = f.read()
 
-        checksum = compute_sha256(payload)
+        checksum = compute_sha256_file(payload)
 
     file_size_bytes = len(payload)
     file_size_mb = file_size_bytes / (1024 * 1024)

@@ -1,15 +1,12 @@
 from flask import Flask, request, Response
-import hashlib
 import os
+
+from output.integrity_checker import sha256
 
 app = Flask(__name__)
 
 OUTPUT_DIR = "/app/output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-
-def sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 @app.route("/upload/<filename>", methods=["PUT"])

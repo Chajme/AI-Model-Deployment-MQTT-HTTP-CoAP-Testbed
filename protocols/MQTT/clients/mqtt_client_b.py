@@ -3,6 +3,7 @@ import json
 import os
 import time
 
+from output.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"
@@ -27,14 +28,6 @@ expected_checksum = None
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-def compute_sha256_file(filepath: str) -> str:
-    import hashlib
-    hasher = hashlib.sha256()
-    with open(filepath, "rb") as f:
-        while chunk := f.read(1024 * 1024):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 def transfer_completed_handler():
     global start_latency, transfer_start_time, expected_checksum

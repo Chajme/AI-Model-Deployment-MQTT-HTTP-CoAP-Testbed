@@ -5,6 +5,7 @@ import os
 import json
 import math
 
+from output.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"
@@ -16,14 +17,6 @@ DATA_DIR = "/app/data"
 # CHUNK_SIZE = 256 * 1024
 # CHUNK_SIZE = 512 * 1024
 CHUNK_SIZE = 1024 * 1024
-
-
-def compute_sha256(filepath: str) -> str:
-    hasher = hashlib.sha256()
-    with open(filepath, "rb") as f:
-        while chunk := f.read(1024 * 1024):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 def mqtt_publish_packet_bytes(topic: str, payload_len: int, qos: int) -> int:
     """MQTT 3.1.1 PUBLISH: fixed header + remaining-length encoding + variable header + payload."""
@@ -135,7 +128,7 @@ def send_file(filename, qos_level):
     file_size, total_chunks = calculate_total_chunks(filepath)
     print(f"\n--- Starting transfer: {filename} ({file_size / 1024 / 1024:.2f} MB) ---")
 
-    checksum = compute_sha256(filepath)
+    checksum = compute_sha256_file(filepath)
 
     ack_latency = 0
     msg_info = send_metadata(filename, total_chunks, checksum, qos_level)

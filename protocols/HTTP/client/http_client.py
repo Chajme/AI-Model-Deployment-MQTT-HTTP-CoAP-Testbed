@@ -1,20 +1,12 @@
 import requests
 import time
 import os
-import hashlib
 
+from output.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_http
 
 BASE_URL = "http://http-server:8000"
 DATA_DIR = "/app/data"
-
-
-def compute_sha256(filepath):
-    hasher = hashlib.sha256()
-    with open(filepath, "rb") as f:
-        while chunk := f.read(1024 * 1024):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 def load_files():
     print(f"\n--- Phase 1: Scanning {DATA_DIR} for Binary Files ---")
@@ -77,7 +69,7 @@ def transfer_binary_files():
         time.sleep(3)
 
         filepath = os.path.join(DATA_DIR, filename)
-        checksum = compute_sha256(filepath)
+        checksum = compute_sha256_file(filepath)
         upload_url = f"{BASE_URL}/upload/{filename}"
         file_size_mb = calculate_logging_size(filepath, filename)
 
