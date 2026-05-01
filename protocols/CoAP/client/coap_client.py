@@ -72,6 +72,8 @@ async def transfer_file(context, filename):
     latency = await get_latency(context, SERVER_URI)
     retries = 0
     response = None
+    goodput_mbps = 0.0
+    transfer_time = 0.0
 
     for attempt in range(MAX_RETRIES):
         try:
@@ -83,6 +85,7 @@ async def transfer_file(context, filename):
             t0 = time.time()
             response = await context.request(request).response
             transfer_time = max(time.time() - t0, 0.001)
+            goodput_mbps = (file_size_bytes * 8) / (transfer_time * 1_000_000)
             break
         except Exception as e:
             retries += 1
@@ -107,6 +110,7 @@ async def transfer_file(context, filename):
         "time_to_transfer": f"{transfer_time:.2f}",
         "latency": f"{latency:.4f}",
         "payload_overhead": f"{total_overhead:.0f}",
+        "goodput_mbps": f"{goodput_mbps:.3f}",
         "integrity_ok": integrity_ok
     }])
 

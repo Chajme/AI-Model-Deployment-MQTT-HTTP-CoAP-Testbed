@@ -145,6 +145,9 @@ def send_file(filename, qos_level):
     end_time = time.time()
     duration = end_time - start_time
 
+    file_size_bytes = file_size
+    goodput_mbps = (file_size_bytes * 8) / (duration * 1_000_000)
+
     overhead_bytes = mqtt_transfer_overhead_bytes(
         TOPIC_CTRL,
         TOPIC_DATA,
@@ -164,6 +167,7 @@ def send_file(filename, qos_level):
          'sender_duration': f"{duration:.2f}",
          'receiver_duration': "X",
          'latency': f"{ack_latency:.4f}",
+         'goodput_mbps': f"{goodput_mbps:.3f}",
          'payload_overhead': f"{overhead_bytes:.0F}",
          }
     ]

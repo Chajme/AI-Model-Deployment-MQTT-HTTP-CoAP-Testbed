@@ -40,6 +40,9 @@ def transfer_completed_handler():
     actual_checksum = compute_sha256_file(filepath)
     integrity_ok = (expected_checksum == actual_checksum)
 
+    file_size_bytes = received_bytes
+    goodput_mbps = (file_size_bytes * 8) / (transfer_duration * 1_000_000)
+
     if integrity_ok:
         print(f"File {current_filename} OK (checksum match)")
     else:
@@ -57,6 +60,7 @@ def transfer_completed_handler():
          'receiver_duration': f"{transfer_duration:.2f}",
          'latency': f"{start_latency:.4f}",
          'payload_overhead': "X",
+         'goodput_mbps': f"{goodput_mbps:.3f}",
          'integrity_ok': integrity_ok
          }
     ]

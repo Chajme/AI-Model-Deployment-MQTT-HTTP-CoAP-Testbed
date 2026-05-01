@@ -97,7 +97,7 @@ def transfer_binary_files():
             # Formula: (Total Bytes / 8192) * ~10 bytes for hex size + CRLFs
             file_size_bytes = os.path.getsize(filepath)
             chunk_overhead = (file_size_bytes / 8192) * 10
-
+            goodput_mbps = (file_size_bytes * 8) / (transfer_time * 1_000_000)
             total_overhead_bytes = header_overhead + chunk_overhead
 
             if integrity_ok:
@@ -115,6 +115,7 @@ def transfer_binary_files():
                  'time_to_transfer': f"{transfer_time:.3f}",
                  'latency': f"{latency:.5f}",
                  'payload_overhead': f"{total_overhead_bytes:.0F}",
+                 'goodput_mbps': f"{goodput_mbps:.3f}",
                  'integrity_ok': integrity_ok
                  }
             ]
