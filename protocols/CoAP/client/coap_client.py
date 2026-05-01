@@ -78,7 +78,6 @@ async def transfer_file(context, filename):
             request = Message(
                 code=PUT,
                 payload=payload,
-                # uri=f"{SERVER_URI}?file={filename}",
                 uri=f"{SERVER_URI}?file={filename}&checksum={checksum}",
             )
             t0 = time.time()

@@ -177,7 +177,6 @@ def qos_levels_loop(files):
         for filename in files:
             send_file(filename, qos_level)
 
-
 if __name__ == "__main__":
     time.sleep(5)  # Wait for broker and receiver to spin up
 
