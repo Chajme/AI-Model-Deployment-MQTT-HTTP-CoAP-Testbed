@@ -3,7 +3,7 @@ import aiocoap.resource as resource
 import aiocoap
 import os
 
-from output.integrity_checker import compute_sha256_file
+from output.integrity_checker import compute_sha256_file, sha256
 
 OUTPUT_DIR = "/app/output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -24,7 +24,7 @@ class BinaryUploadResource(resource.Resource):
 
         print(f"--- CoAP: Receiving file '{filename}' ({len(request.payload)} bytes) ---")
 
-        actual_checksum = compute_sha256_file(request.payload)
+        actual_checksum = sha256(request.payload)
 
         if expected_checksum and actual_checksum != expected_checksum:
             print(f"Checksum mismatch for {filename}!")

@@ -5,7 +5,7 @@ import os
 from aiocoap import Message, Context, PUT, GET
 from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 
-from output.integrity_checker import compute_sha256_file
+from output.integrity_checker import compute_sha256_file, sha256
 from output.write_csv import write_to_file_coap
 
 # Use the largest standard CoAP block: SZX=6 -> 2^(4+6) = 1024 bytes
@@ -63,7 +63,7 @@ async def transfer_file(context, filename):
     with open(filepath, "rb") as f:
         payload = f.read()
 
-        checksum = compute_sha256_file(payload)
+        checksum = sha256(payload)
 
     file_size_bytes = len(payload)
     file_size_mb = file_size_bytes / (1024 * 1024)
