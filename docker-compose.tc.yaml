@@ -50,21 +50,28 @@ services:
   http-server:
 #    image: nginx:alpine
     build: .
-    command: python -m protocols.HTTP.server.flask_server
+    cap_add:
+      - NET_ADMIN                          # needed for tc on server too
+    command: [ "/app/scripts/network_chaos.sh" ]
+#    command: python -m protocols.HTTP.server.flask_server
     ports:
       - "8000:80"
     volumes:
 #      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./uploads:/var/www/uploads/upload
+      - ./:/app
     networks:
       - http-net
+    environment:
+      - APP_COMMAND=python -m protocols.HTTP.server.flask_server
+      - NETWORK_PROFILE=iot
 
   http-client:
     build: .
     cap_add:
       - NET_ADMIN
-    command: python -m protocols.HTTP.client.http_client
-#    command: ["/app/scripts/network_chaos.sh"]
+#    command: python -m protocols.HTTP.client.http_client
+    command: ["/app/scripts/network_chaos.sh"]
     depends_on:
       - http-server
     volumes:
@@ -73,8 +80,9 @@ services:
     networks:
       - http-net
     environment:
-      - MEASUREMENT_SUFFIX=_with_integrity_checks
-#      - APP_COMMAND=python -m protocols.HTTP.client.http_client
+      - NETWORK_PROFILE=iot
+      - MEASUREMENT_SUFFIX=_chaos_bidirectional
+      - APP_COMMAND=python -m protocols.HTTP.client.http_client
 
 #  # ========================
 #  # CoAP
