@@ -1,0 +1,6 @@
+protocol,file_size,time_to_transfer,latency_tcp_rtt,latency_ttfb,payload_overhead,overhead_pct,goodput_mbps,integrity_ok
+http,1.0,18.666,0.59025,18.51987,44024,4.1985,0.449,True
+http,20.0,355.427,0.35754,355.42605,869586,4.1465,0.472,True
+http,0.244140625,5.642,0.35306,5.56017,11145,4.3535,0.363,True
+http,50.0,877.316,0.44209,877.24204,2173026,4.1447,0.478,True
+http,5.0,88.429,0.44533,88.36553,217784,4.1539,0.474,True

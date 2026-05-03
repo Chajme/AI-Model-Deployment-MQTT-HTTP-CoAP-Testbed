@@ -2,3 +2,5 @@ protocol,file_size,time_to_transfer,latency,payload_overhead,overhead_pct,goodpu
 coap,1.0,1.18,0.0080,19555,1.8649,7.091,True
 coap,1.0,1.22,0.0127,19555,1.8649,6.884,True
 coap,1.0,411.68,0.8187,19555,1.8649,0.020,True
+coap,20.0,8387.53,0.2476,389220,1.8559,0.020,True
+coap,0.244140625,100.72,0.4395,4851,1.8949,0.020,True

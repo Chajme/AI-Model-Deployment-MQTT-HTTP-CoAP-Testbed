@@ -9,3 +9,4 @@ requests
 aiocoap
 linkheader
 flask
+psutil

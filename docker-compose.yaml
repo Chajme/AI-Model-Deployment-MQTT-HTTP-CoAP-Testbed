@@ -51,82 +51,82 @@ services:
   # ========================
   # HTTP
   # ========================
-#  http-server:
-##    image: nginx:alpine
-#    build: .
-#    cap_add:
-#      - NET_ADMIN                          # needed for tc on server too
-##    command: [ "/app/scripts/network_chaos.sh" ]
-#    command: python -m protocols.HTTP.server.flask_server
-#    ports:
-#      - "8000:80"
-#    volumes:
-##      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-#      - ./uploads:/var/www/uploads/upload
-#      - ./:/app
-#    networks:
-#      - http-net
-##    environment:
-##      - APP_COMMAND=python -m protocols.HTTP.server.flask_server
-##      - NETWORK_PROFILE=iot
-#
-#  http-client:
-#    build: .
-#    cap_add:
-#      - NET_ADMIN
-#    command: python -m protocols.HTTP.client.http_client_v3
-##    command: ["/app/scripts/network_chaos.sh"]
-#    depends_on:
-#      - http-server
-#    volumes:
-#      - ./output:/app/output
-#      - ./:/app
-#    networks:
-#      - http-net
+  http-server:
+#    image: nginx:alpine
+    build: .
+    cap_add:
+      - NET_ADMIN                          # needed for tc on server too
+#    command: [ "/app/scripts/network_chaos.sh" ]
+    command: python -m protocols.HTTP.server.flask_server
+    ports:
+      - "8000:80"
+    volumes:
+#      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./uploads:/var/www/uploads/upload
+      - ./:/app
+    networks:
+      - http-net
 #    environment:
-##      - NETWORK_PROFILE=iot
-#      - MEASUREMENT_SUFFIX=_testing
-##      - APP_COMMAND=python -m protocols.HTTP.client.http_client_v2
+#      - APP_COMMAND=python -m protocols.HTTP.server.flask_server
+#      - NETWORK_PROFILE=iot
+
+  http-client:
+    build: .
+    cap_add:
+      - NET_ADMIN
+    command: python -m protocols.HTTP.client.http_client_v3
+#    command: ["/app/scripts/network_chaos.sh"]
+    depends_on:
+      - http-server
+    volumes:
+      - ./output:/app/output
+      - ./:/app
+    networks:
+      - http-net
+    environment:
+#      - NETWORK_PROFILE=iot
+      - MEASUREMENT_SUFFIX=_testing
+#      - APP_COMMAND=python -m protocols.HTTP.client.http_client_v2
 
 #  # ========================
 #  # CoAP
 #  # ========================
-  coap-server:
-    build: .
-    cap_add:
-      - NET_ADMIN
-#    command: [ "/app/scripts/network_chaos.sh" ]
-    command: python -m protocols.CoAP.server.coap_server_v2
-    ports:
-      - "5683:5683/udp"
-    volumes:
-      - ./output:/app/output
-      - ./:/app
-    networks:
-      - coap-net
-    environment:
-      - MEASUREMENT_SUFFIX=_testing
-#      - APP_COMMAND=python -m protocols.CoAP.server.coap_server_v2
-#      - NETWORK_PROFILE=iot
-
-  coap-client:
-    build: .
-    command: python -m protocols.CoAP.client.coap_client_v2
-    cap_add:
-      - NET_ADMIN
-#    command: [ "/app/scripts/network_chaos.sh" ]
-    depends_on:
-      - coap-server
-    volumes:
-      - ./:/app
-      - ./output:/app/output
-    networks:
-      - coap-net
-    environment:
-      - MEASUREMENT_SUFFIX=_testing
-#      - APP_COMMAND=python -m protocols.CoAP.client.coap_client_v2
-#      - NETWORK_PROFILE=iot
-
+#  coap-server:
+#    build: .
+#    cap_add:
+#      - NET_ADMIN
+##    command: [ "/app/scripts/network_chaos.sh" ]
+#    command: python -m protocols.CoAP.server.coap_server_v2
+#    ports:
+#      - "5683:5683/udp"
+#    volumes:
+#      - ./output:/app/output
+#      - ./:/app
+#    networks:
+#      - coap-net
+#    environment:
+#      - MEASUREMENT_SUFFIX=_testing
+##      - APP_COMMAND=python -m protocols.CoAP.server.coap_server_v2
+##      - NETWORK_PROFILE=iot
+#
+#  coap-client:
+#    build: .
+#    command: python -m protocols.CoAP.client.coap_client_v2
+#    cap_add:
+#      - NET_ADMIN
+##    command: [ "/app/scripts/network_chaos.sh" ]
+#    depends_on:
+#      - coap-server
+#    volumes:
+#      - ./:/app
+#      - ./output:/app/output
+#    networks:
+#      - coap-net
+#    environment:
+#      - MEASUREMENT_SUFFIX=_testing
+##      - APP_COMMAND=python -m protocols.CoAP.client.coap_client_v2
+##      - NETWORK_PROFILE=iot
+#
 networks:
   mqtt-net:
     driver: bridge

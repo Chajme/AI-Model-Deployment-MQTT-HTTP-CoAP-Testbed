@@ -7,6 +7,7 @@ import math
 import struct
 
 from output.integrity_checker import compute_sha256_file
+from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_http_2
 
 BASE_URL = "http://http-server:8000"
@@ -157,6 +158,9 @@ def transfer_binary_files():
 
         latency = measure_network_latency()
 
+        monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
+        monitor.start()
+
         try:
             ttfb = None
 
@@ -207,6 +211,12 @@ def transfer_binary_files():
             else:
                 print(f"  -> Failed. Status: {put_response.status_code}")
                 print(f"  -> Integrity OK: {integrity_ok}")
+
+            resource_stats = monitor.stop()
+
+            print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
+            print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
+            print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
 
             measurements = [
                 {
