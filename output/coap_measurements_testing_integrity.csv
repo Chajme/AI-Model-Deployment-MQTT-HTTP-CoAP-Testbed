@@ -1,6 +1,0 @@
-protocol,file_size,time_to_transfer,latency,payload_overhead,integrity
-coap,1.0,2.10,0.0159,24632,True
-coap,20.0,254.02,0.0028,491576,True
-coap,0.244140625,0.34,0.0021,6056,True
-coap,50.0,1284.94,0.0030,1228856,True
-coap,5.0,9.11,0.0024,122936,True

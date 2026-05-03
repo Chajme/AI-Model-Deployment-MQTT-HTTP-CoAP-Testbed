@@ -35,6 +35,21 @@ def write_to_file_http(data: list[dict]):
     ]
     write_to_csv(output_path, fieldnames, data)
 
+def write_to_file_http_2(data: list[dict]):
+    output_path = _measurement_file("http")
+    fieldnames = [
+        'protocol',
+        'file_size',
+        'time_to_transfer',
+        'latency_tcp_rtt',
+        'latency_ttfb',
+        'payload_overhead',
+        'overhead_pct',
+        'goodput_mbps',
+        'integrity_ok'
+    ]
+    write_to_csv(output_path, fieldnames, data)
+
 def write_to_file_mqtt(data: list[dict]):
     output_path = _measurement_file("mqtt")
     fieldnames = [
@@ -59,6 +74,20 @@ def write_to_file_coap(data: list[dict]):
         'time_to_transfer',
         'latency',
         'payload_overhead',
+        'goodput_mbps',
+        'integrity_ok'
+    ]
+    write_to_csv(output_path, fieldnames, data)
+
+def write_to_file_coap_2(data: list[dict]):
+    output_path = _measurement_file("coap")
+    fieldnames = [
+        'protocol',
+        'file_size',
+        'time_to_transfer',
+        'latency',
+        'payload_overhead',
+        'overhead_pct',
         'goodput_mbps',
         'integrity_ok'
     ]

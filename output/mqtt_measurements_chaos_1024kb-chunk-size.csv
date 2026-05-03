@@ -1,7 +1,0 @@
-protocol,qos,side,file_size,sender_duration,receiver_duration,latency,payload_overhead
-mqtt,0,sender,1.0,47.82,X,0.0002,85
-mqtt,X,receiver,1.0,X,0.01,50.9562,X
-mqtt,0,sender,20.0,1018.10,X,0.0003,372
-mqtt,X,receiver,20.0,X,967.73,51.4126,X
-mqtt,0,sender,0.244140625,11.19,X,0.0002,87
-mqtt,X,receiver,0.244140625,X,0.00,13.2904,X

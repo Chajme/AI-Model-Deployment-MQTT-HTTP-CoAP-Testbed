@@ -7,128 +7,130 @@ services:
 #    image: eclipse-mosquitto:latest
 #    ports:
 #      - "1883:1883"
+#    networks:
+#      - mqtt-net
 #    volumes:
 #      - ./protocols/MQTT/mosquitto.conf:/mosquitto-broker/mosquitto.conf
 #
 #  mqtt-client-a:
 #    build: ./
-#    command: python -m protocols.MQTT.clients.mqtt_client_a
+#    command: python -m protocols.MQTT.clients.client_a
+#    cap_add:
+#      - NET_ADMIN
+##    command: [ "/app/scripts/network_chaos.sh" ]
 #    depends_on:
 #      - mosquitto-broker
 #    volumes:
 #      - ./output:/app/output
 #      - ./:/app
+#    networks:
+#      - mqtt-net
+#    environment:
+##      - APP_COMMAND=python -m protocols.MQTT.clients.client_a
+##      - NETWORK_PROFILE=iot   # or good/harsh/mobile/satellite
+#      - MEASUREMENT_SUFFIX=_testing
 #
 #  mqtt-client-b:
 #    build: ./
-#    command: python -m protocols.MQTT.clients.mqtt_client_b
+#    cap_add:
+#      - NET_ADMIN
+##    command: [ "/app/scripts/network_chaos.sh" ]
+#    command: python -m protocols.MQTT.clients.client_b
 #    depends_on:
 #      - mosquitto-broker
 #    volumes:
 #      - ./output:/app/output
 #      - ./:/app
+#    networks:
+#      - mqtt-net
+#    environment:
+##      - APP_COMMAND=python -m protocols.MQTT.clients.client_b
+##      - NETWORK_PROFILE=iot
+#      - MEASUREMENT_SUFFIX=_testing
 
   # ========================
   # HTTP
   # ========================
-  http-server:
-    image: nginx:alpine
-    ports:
-      - "8000:80"
-    volumes:
-      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./uploads:/var/www/uploads/upload
-    networks:
-      - iot-net
-
-  http-client:
-    build: .
-    command: python -m protocols.HTTP.client.http_client
-    depends_on:
-      - http-server
-    volumes:
-      - ./output:/app/output
-      - ./:/app
-    networks:
-      - iot-net
-    environment:
-      - MEASUREMENT_SUFFIX=_chaos
+#  http-server:
+##    image: nginx:alpine
+#    build: .
+#    cap_add:
+#      - NET_ADMIN                          # needed for tc on server too
+##    command: [ "/app/scripts/network_chaos.sh" ]
+#    command: python -m protocols.HTTP.server.flask_server
+#    ports:
+#      - "8000:80"
+#    volumes:
+##      - ./protocols/HTTP/server/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+#      - ./uploads:/var/www/uploads/upload
+#      - ./:/app
+#    networks:
+#      - http-net
+##    environment:
+##      - APP_COMMAND=python -m protocols.HTTP.server.flask_server
+##      - NETWORK_PROFILE=iot
+#
+#  http-client:
+#    build: .
+#    cap_add:
+#      - NET_ADMIN
+#    command: python -m protocols.HTTP.client.http_client_v3
+##    command: ["/app/scripts/network_chaos.sh"]
+#    depends_on:
+#      - http-server
+#    volumes:
+#      - ./output:/app/output
+#      - ./:/app
+#    networks:
+#      - http-net
+#    environment:
+##      - NETWORK_PROFILE=iot
+#      - MEASUREMENT_SUFFIX=_testing
+##      - APP_COMMAND=python -m protocols.HTTP.client.http_client_v2
 
 #  # ========================
 #  # CoAP
 #  # ========================
-#  coap-server:
-#    build: .
-#    command: python -m protocols.CoAP.server.coap_server
-#    ports:
-#      - "5683:5683/udp"
-#    volumes:
-#      - ./output:/app/output
-#      - ./:/app
-#
-#  coap-client:
-#    build: .
-#    command: python -m protocols.CoAP.client.coap_client
-#    depends_on:
-#      - coap-server
-#    volumes:
-#      - ./:/app
-
-  # ========================
-  # CHAOS ENGINE (Pumba)
-  # ========================
-  pumba-delay:
-    image: ghcr.io/alexei-led/pumba:latest
-    depends_on:
-      - http-client
+  coap-server:
+    build: .
+    cap_add:
+      - NET_ADMIN
+#    command: [ "/app/scripts/network_chaos.sh" ]
+    command: python -m protocols.CoAP.server.coap_server_v2
+    ports:
+      - "5683:5683/udp"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - ./output:/app/output
+      - ./:/app
     networks:
-      - iot-net
-    command:
-      - --interval
-      - 120s
-      - netem
-      - --duration
-      - 60s
-      - delay
-      - --time
-      - "150"
-      - --jitter
-      - "50"
-      - --correlation
-      - "25"
-      - rate
-      - --rate
-      - 1mbit
-      - re2:.*(client|server).*
+      - coap-net
+    environment:
+      - MEASUREMENT_SUFFIX=_testing
+#      - APP_COMMAND=python -m protocols.CoAP.server.coap_server_v2
+#      - NETWORK_PROFILE=iot
 
-    # Alternative profiles (uncomment to switch):
-
-    # --- HARSH IoT (LPWAN-like) ---
-    # command: >
-    #   --interval 40s
-    #   netem
-    #   --duration 25s
-    #   delay --time 600 --jitter 200
-    #   loss --percent 20
-    #   re2:.*client.*
-
-    # --- PACKET LOSS FOCUS (CoAP stress) ---
-    # command: >
-    #   --interval 30s
-    #   netem
-    #   --duration 20s
-    #   loss --percent 15 --correlation 50
-    #   re2:coap-client
-
-    # --- MQTT DISRUPTION (simulate reconnect storms) ---
-    # command: >
-    #   --interval 60s
-    #   kill
-    #   --signal SIGKILL
-    #   re2:mqtt-client.*
+  coap-client:
+    build: .
+    command: python -m protocols.CoAP.client.coap_client_v2
+    cap_add:
+      - NET_ADMIN
+#    command: [ "/app/scripts/network_chaos.sh" ]
+    depends_on:
+      - coap-server
+    volumes:
+      - ./:/app
+      - ./output:/app/output
+    networks:
+      - coap-net
+    environment:
+      - MEASUREMENT_SUFFIX=_testing
+#      - APP_COMMAND=python -m protocols.CoAP.client.coap_client_v2
+#      - NETWORK_PROFILE=iot
 
 networks:
-  iot-net:
+  mqtt-net:
+    driver: bridge
+  coap-net:
+    driver: bridge
+  http-net:
     driver: bridge

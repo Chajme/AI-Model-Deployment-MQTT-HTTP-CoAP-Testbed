@@ -26,7 +26,7 @@ services:
 #    networks:
 #      - mqtt-net
 #    environment:
-#      - APP_COMMAND=python -m protocols.MQTT.clients.mqtt_client_a
+#      - APP_COMMAND=python -m protocols.MQTT.clients.client_a
 #      - NETWORK_PROFILE=iot   # or good/harsh/mobile/satellite
 #      - MEASUREMENT_SUFFIX=_chaos_biderictional
 #
@@ -44,7 +44,7 @@ services:
 #    networks:
 #      - mqtt-net
 #    environment:
-#      - APP_COMMAND=python -m protocols.MQTT.clients.mqtt_client_b
+#      - APP_COMMAND=python -m protocols.MQTT.clients.client_b
 #      - NETWORK_PROFILE=iot
 #      - MEASUREMENT_SUFFIX=_chaos_biderictional
 
@@ -85,8 +85,8 @@ services:
 #      - http-net
 #    environment:
 #      - NETWORK_PROFILE=iot
-#      - MEASUREMENT_SUFFIX=_chaos_bidirectional
-#      - APP_COMMAND=python -m protocols.HTTP.client.http_client
+#      - MEASUREMENT_SUFFIX=_testing
+#      - APP_COMMAND=python -m protocols.HTTP.client.http_client_v2
 
 #  # ========================
 #  # CoAP
@@ -105,8 +105,8 @@ services:
     networks:
       - coap-net
     environment:
-      - MEASUREMENT_SUFFIX=_chaos_increased_block-size
-      - APP_COMMAND=python -m protocols.CoAP.server.coap_server
+      - MEASUREMENT_SUFFIX=_testing
+      - APP_COMMAND=python -m protocols.CoAP.server.coap_server_v2
       - NETWORK_PROFILE=iot
 
   coap-client:
@@ -123,8 +123,8 @@ services:
     networks:
       - coap-net
     environment:
-      - MEASUREMENT_SUFFIX=_chaos_increased_block-size
-      - APP_COMMAND=python -m protocols.CoAP.client.coap_client
+      - MEASUREMENT_SUFFIX=_testing
+      - APP_COMMAND=python -m protocols.CoAP.client.coap_client_v2
       - NETWORK_PROFILE=iot
 
 networks:

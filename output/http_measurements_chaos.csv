@@ -1,6 +1,0 @@
-protocol,file_size,time_to_transfer,latency,payload_overhead
-http,1.0,53.783,0.45555,1557
-http,20.0,1023.786,0.37406,25879
-http,0.244140625,11.581,0.37027,590
-http,50.0,2580.775,0.28966,64279
-http,5.0,256.035,0.36339,6677
