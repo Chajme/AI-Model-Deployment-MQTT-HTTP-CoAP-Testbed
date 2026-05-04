@@ -7,6 +7,7 @@ import math
 import threading
 
 from output.integrity_checker import compute_sha256_file
+from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"
@@ -173,6 +174,9 @@ def send_file(filename, qos_level):
     ack_latency = 0
     metadata_ack_event.clear()
 
+    monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
+    monitor.start()
+
     start_time = time.time()
     msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level)
 
@@ -197,6 +201,8 @@ def send_file(filename, qos_level):
     overhead_pct = (overhead_bytes / file_size) * 100 if file_size else 0.0
     print(f"  -> Payload Overhead: {overhead_bytes:.0f} bytes ({overhead_pct:.4f}%)")
 
+    resource_stats = monitor.stop()
+
     measurements = [
         {
             "protocol": "mqtt",
@@ -214,6 +220,10 @@ def send_file(filename, qos_level):
 
     print("Finished sending file.")
     print(f"Latency: {ack_latency:.4f}s | Sender Time: {duration:.2f}s")
+
+    print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
+    print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
+    print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
 
 
 def qos_levels_loop(files):
