@@ -126,7 +126,7 @@ async def transfer_file(context: Context, filename: str) -> None:
     goodput_mbps  = 0.0
     transfer_time = 0.0
 
-    monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
+    monitor = ResourceMonitor(sample_interval=0.01)  # 50 ms granularity
     monitor.start()
 
     for attempt in range(MAX_RETRIES):

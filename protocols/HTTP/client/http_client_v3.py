@@ -158,7 +158,7 @@ def transfer_binary_files():
 
         latency = measure_network_latency()
 
-        monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
+        monitor = ResourceMonitor(sample_interval=0.01)  # 50 ms granularity
         monitor.start()
 
         try:

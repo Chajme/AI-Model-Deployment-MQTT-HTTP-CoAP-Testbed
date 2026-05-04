@@ -174,7 +174,7 @@ def send_file(filename, qos_level):
     ack_latency = 0
     metadata_ack_event.clear()
 
-    monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
+    monitor = ResourceMonitor(sample_interval=0.01)  # 50 ms granularity
     monitor.start()
 
     start_time = time.time()
