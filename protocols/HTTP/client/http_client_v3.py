@@ -239,6 +239,8 @@ def transfer_binary_files():
             ]
             write_to_file_http_2(measurements)
 
+            time.sleep(3)
+
         except Exception as e:
             print(f"  -> Error transferring {filename}: {e}")
 

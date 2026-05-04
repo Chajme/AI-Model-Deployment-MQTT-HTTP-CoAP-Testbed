@@ -15,7 +15,10 @@ TOPIC_CTRL = "file/control"
 TOPIC_DATA = "file/data"
 DATA_DIR = "/app/data"
 
-CHUNK_SIZE = 1024 * 1024
+
+# CHUNK_SIZE = 256 * 1024
+CHUNK_SIZE = 512 * 1024
+# CHUNK_SIZE = 1024 * 1024
 
 # MQTT control packet sizes (bytes) for broker-to-client ACK traffic.
 # These are fixed-size packets defined by the MQTT 3.1.1 spec:
@@ -174,7 +177,7 @@ def send_file(filename, qos_level):
     ack_latency = 0
     metadata_ack_event.clear()
 
-    monitor = ResourceMonitor(sample_interval=0.01)  # 50 ms granularity
+    monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
     monitor.start()
 
     start_time = time.time()
@@ -227,6 +230,7 @@ def send_file(filename, qos_level):
     print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
     print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
     print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
+    time.sleep(3)
 
 
 def qos_levels_loop(files):

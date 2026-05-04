@@ -180,6 +180,8 @@ async def transfer_file(context: Context, filename: str) -> None:
         "energy_est": f"{resource_stats['energy_j']:.4f}"
     }])
 
+    time.sleep(3)
+
 
 async def transfer_all_files() -> None:
     files = load_files()
