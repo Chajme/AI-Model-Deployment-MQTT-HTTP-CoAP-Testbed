@@ -9,6 +9,7 @@ import threading
 from output.integrity_checker import compute_sha256_file
 from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_mqtt
+from output.net_stats import WireSnapshot
 
 BROKER = "mosquitto-broker"
 TOPIC_CTRL = "file/control"
@@ -180,27 +181,38 @@ def send_file(filename, qos_level):
     monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
     monitor.start()
 
-    start_time = time.time()
-    msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level)
+    # start_time = time.time()
+    # msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level)
+    #
+    # if not metadata_ack_event.wait(timeout=10):
+    #     print("WARNING: Timed out waiting for metadata ACK, proceeding anyway.")
+    #
+    # chunk_lengths = send_chunks(filepath, total_chunks, qos_level)
+    #
+    # end_time = time.time()
 
-    if not metadata_ack_event.wait(timeout=10):
-        print("WARNING: Timed out waiting for metadata ACK, proceeding anyway.")
+    with WireSnapshot() as wire:  # ← start
+        start_time = time.time()
+        msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level)
 
-    chunk_lengths = send_chunks(filepath, total_chunks, qos_level)
+        if not metadata_ack_event.wait(timeout=10):
+            print("WARNING: Timed out waiting for metadata ACK, proceeding anyway.")
 
-    end_time = time.time()
+        chunk_lengths = send_chunks(filepath, total_chunks, qos_level)
+        end_time = time.time()
     duration = end_time - start_time
 
     goodput_mbps = (file_size * 8) / (duration * 1_000_000)
 
-    overhead_bytes = mqtt_transfer_overhead_bytes(
-        TOPIC_CTRL,
-        TOPIC_DATA,
-        metadata_payload_len,
-        chunk_lengths,
-        qos_level,
-        file_size,
-    )
+    # overhead_bytes = mqtt_transfer_overhead_bytes(
+    #     TOPIC_CTRL,
+    #     TOPIC_DATA,
+    #     metadata_payload_len,
+    #     chunk_lengths,
+    #     qos_level,
+    #     file_size,
+    # )
+    overhead_bytes = wire.total_bytes - file_size
     overhead_pct = (overhead_bytes / file_size) * 100 if file_size else 0.0
     print(f"  -> Payload Overhead: {overhead_bytes:.0f} bytes ({overhead_pct:.4f}%)")
 

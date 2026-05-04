@@ -9,6 +9,7 @@ import struct
 from output.integrity_checker import compute_sha256_file
 from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_http_2
+from output.net_stats import WireSnapshot
 
 BASE_URL = "http://http-server:8000"
 DATA_DIR = "/app/data"
@@ -172,15 +173,26 @@ def transfer_binary_files():
                 nonlocal ttfb
                 ttfb = time.perf_counter() - request_start
 
-            with open(filepath, "rb") as file_stream:
-                request_start = time.perf_counter()
-                put_response = requests.put(
-                    upload_url,
-                    data=file_stream,
-                    headers={"X-Checksum": checksum},
-                    hooks={"response": record_ttfb},
-                )
-            end_time = time.perf_counter()
+            # with open(filepath, "rb") as file_stream:
+            #     request_start = time.perf_counter()
+            #     put_response = requests.put(
+            #         upload_url,
+            #         data=file_stream,
+            #         headers={"X-Checksum": checksum},
+            #         hooks={"response": record_ttfb},
+            #     )
+            # end_time = time.perf_counter()
+
+            with WireSnapshot() as wire:  # ← add this
+                with open(filepath, "rb") as file_stream:
+                    request_start = time.perf_counter()
+                    put_response = requests.put(
+                        upload_url,
+                        data=file_stream,
+                        headers={"X-Checksum": checksum},
+                        hooks={"response": record_ttfb},
+                    )
+                end_time = time.perf_counter()
 
             transfer_time = end_time - request_start
 
@@ -194,10 +206,12 @@ def transfer_binary_files():
             # as a continuous body with Content-Length, not chunked encoding.
             # header_overhead = calculate_payload_overhead(put_response)
             # total_overhead_bytes = header_overhead
-            total_overhead_bytes = calculate_total_http_overhead(
-                put_response,
-                file_size_bytes
-            )
+            # total_overhead_bytes = calculate_total_http_overhead(
+            #     put_response,
+            #     file_size_bytes
+            # )
+
+            total_overhead_bytes = wire.total_bytes - file_size_bytes
 
             overhead_percentage = (total_overhead_bytes / file_size_bytes) * 100
             goodput_mbps = (file_size_bytes * 8) / (transfer_time * 1_000_000)

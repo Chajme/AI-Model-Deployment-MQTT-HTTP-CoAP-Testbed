@@ -11,6 +11,10 @@ from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 from output.integrity_checker import compute_sha256_file, sha256
 from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_coap, write_to_file_coap_2
+from output.net_stats import WireSnapshot, get_iface_bytes
+import logging
+logging.basicConfig(level=logging.WARNING)
+logging.getLogger("aiocoap").setLevel(logging.INFO)
 
 # logging.basicConfig(level=logging.INFO)
 # logging.getLogger("aiocoap").setLevel(logging.DEBUG)
@@ -129,6 +133,8 @@ async def transfer_file(context: Context, filename: str) -> None:
     monitor = ResourceMonitor(sample_interval=0.01)  # 50 ms granularity
     monitor.start()
 
+    rx0, tx0 = get_iface_bytes()
+
     for attempt in range(MAX_RETRIES):
         try:
             request = Message(
@@ -146,6 +152,9 @@ async def transfer_file(context: Context, filename: str) -> None:
             print(f"  Attempt {attempt + 1} failed: {e}. Retrying...")
             await asyncio.sleep(2 ** attempt)  # exponential back-off
 
+    rx1, tx1 = get_iface_bytes()
+    total_wire_bytes = (rx1 - rx0) + (tx1 - tx0)
+
     if response is None:
         print(f"  Transfer failed after {MAX_RETRIES} attempts.")
         return
@@ -155,7 +164,9 @@ async def transfer_file(context: Context, filename: str) -> None:
     # confirmed the file was saved with a matching checksum.
     integrity_ok = response.code.is_successful()
     resource_stats = monitor.stop()
-    total_overhead = calculate_payload_overhead(filename, checksum, file_size_bytes)
+    # total_overhead = calculate_payload_overhead(filename, checksum, file_size_bytes)
+    total_overhead = total_wire_bytes - file_size_bytes
+
     overhead_pct   = (total_overhead / file_size_bytes) * 100
 
     print(f"Result: {response.code} | Time: {transfer_time:.2f}s | Retries: {retries}")
