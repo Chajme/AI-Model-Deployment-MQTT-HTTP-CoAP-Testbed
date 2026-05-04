@@ -214,6 +214,9 @@ def send_file(filename, qos_level):
             "latency": f"{ack_latency:.4f}",
             "goodput_mbps": f"{goodput_mbps:.3f}",
             "payload_overhead": f"{overhead_bytes:.0f}",
+            "avg_cpu_usage": f"{resource_stats['avg_cpu_pct']:.2f}%",
+            "peak_ram_usage": f"{resource_stats['peak_rss_mb']:.2f} MB",
+            "energy_est": f"{resource_stats['energy_j']:.4f}"
         }
     ]
     write_to_file_mqtt(measurements)

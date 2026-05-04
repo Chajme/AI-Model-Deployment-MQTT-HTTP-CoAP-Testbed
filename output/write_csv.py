@@ -31,7 +31,10 @@ def write_to_file_http(data: list[dict]):
         'latency',
         'payload_overhead',
         'goodput_mbps',
-        'integrity_ok'
+        'integrity_ok',
+        'avg_cpu_usage',
+        'peak_ram_usage',
+        'energy_est',
     ]
     write_to_csv(output_path, fieldnames, data)
 
@@ -46,7 +49,10 @@ def write_to_file_http_2(data: list[dict]):
         'payload_overhead',
         'overhead_pct',
         'goodput_mbps',
-        'integrity_ok'
+        'integrity_ok',
+        'avg_cpu_usage',
+        'peak_ram_usage',
+        'energy_est',
     ]
     write_to_csv(output_path, fieldnames, data)
 
@@ -62,7 +68,10 @@ def write_to_file_mqtt(data: list[dict]):
         'latency',
         'payload_overhead',
         'goodput_mbps',
-        'integrity_ok'
+        'integrity_ok',
+        'avg_cpu_usage',
+        'peak_ram_usage',
+        'energy_est',
     ]
     write_to_csv(output_path, fieldnames, data)
 

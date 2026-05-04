@@ -232,6 +232,9 @@ def transfer_binary_files():
                     "overhead_pct": f"{overhead_percentage:.4f}",
                     "goodput_mbps": f"{goodput_mbps:.3f}",
                     "integrity_ok": integrity_ok,
+                    "avg_cpu_usage": f"{resource_stats['avg_cpu_pct']:.2f}%",
+                    "peak_ram_usage": f"{resource_stats['peak_rss_mb']:.2f} MB",
+                    "energy_est": f"{resource_stats['energy_j']:.4f}"
                 }
             ]
             write_to_file_http_2(measurements)

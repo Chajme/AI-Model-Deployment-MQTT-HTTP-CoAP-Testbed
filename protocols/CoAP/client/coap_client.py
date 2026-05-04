@@ -76,8 +76,7 @@ async def transfer_file(context, filename):
     goodput_mbps = 0.0
     transfer_time = 0.0
 
-    monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
-    monitor.start()
+
 
 
 
@@ -104,7 +103,7 @@ async def transfer_file(context, filename):
 
     integrity_ok = response.code.is_successful()
 
-    resource_stats = monitor.stop()
+
 
     total_overhead = calculate_payload_overhead(request, response, file_size_bytes)
     overhead_pct = (total_overhead / file_size_bytes) * 100
@@ -120,9 +119,7 @@ async def transfer_file(context, filename):
         "integrity_ok": integrity_ok
     }])
 
-    print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
-    print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
-    print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
+
 
 
 async def transfer_all_files():

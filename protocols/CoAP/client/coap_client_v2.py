@@ -9,6 +9,7 @@ from aiocoap import Message, Context, PUT, GET
 from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 
 from output.integrity_checker import compute_sha256_file, sha256
+from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_coap, write_to_file_coap_2
 
 # logging.basicConfig(level=logging.INFO)
@@ -103,9 +104,9 @@ async def transfer_file(context: Context, filename: str) -> None:
         print(f"File {filename} not found.")
         return
 
-    counter = RetransmitCounter()
-    logging.getLogger("aiocoap").addHandler(counter)
-    logging.getLogger("aiocoap").setLevel(logging.DEBUG)
+    # counter = RetransmitCounter()
+    # logging.getLogger("aiocoap").addHandler(counter)
+    # logging.getLogger("aiocoap").setLevel(logging.DEBUG)
 
     # NOTE: aiocoap requires the full payload in memory to perform blockwise
     # transfers automatically. Unlike the HTTP client there is no streaming
@@ -124,6 +125,9 @@ async def transfer_file(context: Context, filename: str) -> None:
     response      = None
     goodput_mbps  = 0.0
     transfer_time = 0.0
+
+    monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
+    monitor.start()
 
     for attempt in range(MAX_RETRIES):
         try:
@@ -150,14 +154,17 @@ async def transfer_file(context: Context, filename: str) -> None:
     # and returning 4.00 Bad Request on mismatch; 2.04 Changed means the server
     # confirmed the file was saved with a matching checksum.
     integrity_ok = response.code.is_successful()
-
+    resource_stats = monitor.stop()
     total_overhead = calculate_payload_overhead(filename, checksum, file_size_bytes)
     overhead_pct   = (total_overhead / file_size_bytes) * 100
 
     print(f"Result: {response.code} | Time: {transfer_time:.2f}s | Retries: {retries}")
     print(f"Latency: {latency:.4f}s | Overhead: {total_overhead} bytes ({overhead_pct:.4f}%)")
-    block_retries = counter.count
-    print("Block-level retransmissions:", block_retries)
+    # block_retries = counter.count
+    # print("Block-level retransmissions:", block_retries)
+    print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
+    print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
+    print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
 
     write_to_file_coap_2([{
         "protocol":        "coap",
@@ -168,6 +175,9 @@ async def transfer_file(context: Context, filename: str) -> None:
         "overhead_pct":    f"{overhead_pct:.4f}",
         "goodput_mbps":    f"{goodput_mbps:.3f}",
         "integrity_ok":    integrity_ok,
+        "avg_cpu_usage": f"{resource_stats['avg_cpu_pct']:.2f}%",
+        "peak_ram_usage": f"{resource_stats['peak_rss_mb']:.2f} MB",
+        "energy_est": f"{resource_stats['energy_j']:.4f}"
     }])
 
 
