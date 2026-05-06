@@ -9,12 +9,9 @@ from aiocoap import Message, Context, PUT, GET
 from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 
 from output.integrity_checker import compute_sha256_file, sha256
-from output.resource_monitor import ResourceMonitor
+# from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_coap, write_to_file_coap_2
-from output.net_stats import WireSnapshot, get_iface_bytes
-import logging
-logging.basicConfig(level=logging.WARNING)
-logging.getLogger("aiocoap").setLevel(logging.INFO)
+# from output.net_stats import WireSnapshot, get_iface_bytes
 
 # logging.basicConfig(level=logging.INFO)
 # logging.getLogger("aiocoap").setLevel(logging.DEBUG)
@@ -33,6 +30,7 @@ logging.getLogger("aiocoap").setLevel(logging.INFO)
 
 # Use the largest standard CoAP block: SZX=6 -> 2^(4+6) = 1024 bytes
 _BLOCK_SZX = MAX_REGULAR_BLOCK_SIZE_EXP  # 6
+# _BLOCK_SZX = 64
 _BLOCK_SIZE = 2 ** (4 + _BLOCK_SZX)      # 1024 bytes
 
 # Per-block wire overhead constants (bytes), MQTT 3.1.1 / CoAP RFC 7252:
@@ -96,10 +94,19 @@ def calculate_payload_overhead(filename: str, checksum: str, file_size_bytes: in
 
 
 def load_files() -> list[str]:
-    return [
+
+    files = [
         f for f in os.listdir(DATA_DIR)
         if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")
     ]
+
+    files.sort(key=lambda f: os.path.getsize(os.path.join(DATA_DIR, f)))
+
+    for f in files:
+        size = os.path.getsize(os.path.join(DATA_DIR, f))
+        print(f, size)
+
+    return files
 
 
 async def transfer_file(context: Context, filename: str) -> None:
@@ -130,10 +137,10 @@ async def transfer_file(context: Context, filename: str) -> None:
     goodput_mbps  = 0.0
     transfer_time = 0.0
 
-    monitor = ResourceMonitor(sample_interval=0.01)  # 50 ms granularity
-    monitor.start()
-
-    rx0, tx0 = get_iface_bytes()
+    # monitor = ResourceMonitor(sample_interval=0.01)  # 50 ms granularity
+    # monitor.start()
+    #
+    # rx0, tx0 = get_iface_bytes()
 
     for attempt in range(MAX_RETRIES):
         try:
@@ -152,8 +159,8 @@ async def transfer_file(context: Context, filename: str) -> None:
             print(f"  Attempt {attempt + 1} failed: {e}. Retrying...")
             await asyncio.sleep(2 ** attempt)  # exponential back-off
 
-    rx1, tx1 = get_iface_bytes()
-    total_wire_bytes = (rx1 - rx0) + (tx1 - tx0)
+    # rx1, tx1 = get_iface_bytes()
+    # total_wire_bytes = (rx1 - rx0) + (tx1 - tx0)
 
     if response is None:
         print(f"  Transfer failed after {MAX_RETRIES} attempts.")
@@ -163,9 +170,9 @@ async def transfer_file(context: Context, filename: str) -> None:
     # and returning 4.00 Bad Request on mismatch; 2.04 Changed means the server
     # confirmed the file was saved with a matching checksum.
     integrity_ok = response.code.is_successful()
-    resource_stats = monitor.stop()
-    # total_overhead = calculate_payload_overhead(filename, checksum, file_size_bytes)
-    total_overhead = total_wire_bytes - file_size_bytes
+    # resource_stats = monitor.stop()
+    total_overhead = calculate_payload_overhead(filename, checksum, file_size_bytes)
+    # total_overhead = total_wire_bytes - file_size_bytes
 
     overhead_pct   = (total_overhead / file_size_bytes) * 100
 
@@ -173,9 +180,9 @@ async def transfer_file(context: Context, filename: str) -> None:
     print(f"Latency: {latency:.4f}s | Overhead: {total_overhead} bytes ({overhead_pct:.4f}%)")
     # block_retries = counter.count
     # print("Block-level retransmissions:", block_retries)
-    print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
-    print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
-    print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
+    # print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
+    # print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
+    # print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
 
     write_to_file_coap_2([{
         "protocol":        "coap",
@@ -186,12 +193,9 @@ async def transfer_file(context: Context, filename: str) -> None:
         "overhead_pct":    f"{overhead_pct:.4f}",
         "goodput_mbps":    f"{goodput_mbps:.3f}",
         "integrity_ok":    integrity_ok,
-        "avg_cpu_usage": f"{resource_stats['avg_cpu_pct']:.2f}%",
-        "peak_ram_usage": f"{resource_stats['peak_rss_mb']:.2f} MB",
-        "energy_est": f"{resource_stats['energy_j']:.4f}"
     }])
 
-    time.sleep(3)
+    await asyncio.sleep(3)
 
 
 async def transfer_all_files() -> None:
@@ -200,7 +204,7 @@ async def transfer_all_files() -> None:
         print("No .bin files found.")
         return
     context = await Context.create_client_context()
-    for filename in sorted(files):
+    for filename in files:
         await transfer_file(context, filename)
 
 

@@ -1,0 +1,4 @@
+protocol,file_size,time_to_transfer,latency,payload_overhead,overhead_pct,goodput_mbps,integrity_ok,avg_cpu_usage,peak_ram_usage,energy_est
+coap,1.0,250.86,0.6020,230704,22.0016,0.033,True,0.37%,28.61 MB,1.1465
+coap,20.0,5260.23,0.2631,4675392,22.2940,0.032,True,0.37%,83.19 MB,24.4638
+coap,0.244140625,61.70,0.2906,56863,22.2121,0.033,True,0.34%,37.10 MB,0.2636

@@ -7,9 +7,9 @@ import math
 import threading
 
 from output.integrity_checker import compute_sha256_file
-from output.resource_monitor import ResourceMonitor
+# from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_mqtt
-from output.net_stats import WireSnapshot
+# from output.net_stats import WireSnapshot, get_iface_bytes
 
 BROKER = "mosquitto-broker"
 TOPIC_CTRL = "file/control"
@@ -18,8 +18,8 @@ DATA_DIR = "/app/data"
 
 
 # CHUNK_SIZE = 256 * 1024
-CHUNK_SIZE = 512 * 1024
-# CHUNK_SIZE = 1024 * 1024
+# CHUNK_SIZE = 512 * 1024
+CHUNK_SIZE = 1024 * 1024
 
 # MQTT control packet sizes (bytes) for broker-to-client ACK traffic.
 # These are fixed-size packets defined by the MQTT 3.1.1 spec:
@@ -106,11 +106,16 @@ def on_publish(client, userdata, mid):
         metadata_ack_event.set()
 
 
-client = mqtt.Client()
-client.on_publish = on_publish
-client.connect(BROKER, 1883, 300)
-client.loop_start()
+# client = mqtt.Client()
+# client.on_publish = on_publish
+# client.connect(BROKER, 1883, 300)
+# client.loop_start()
 
+def make_client():
+    c = mqtt.Client()
+    c.on_publish = on_publish
+    c.connect(BROKER, 1883, 300)
+    return c
 
 def calculate_total_chunks(filepath):
     file_size = os.path.getsize(filepath)
@@ -118,7 +123,7 @@ def calculate_total_chunks(filepath):
     return file_size, total_chunks
 
 
-def send_metadata(filename, total_chunks, checksum, qos_level):
+def send_metadata(filename, total_chunks, checksum, qos_level, client):
     global metadata_mid, metadata_sent_time
 
     metadata = {
@@ -136,7 +141,7 @@ def send_metadata(filename, total_chunks, checksum, qos_level):
     return msg_info, metadata_payload_len
 
 
-def send_chunks(filepath, total_chunks, qos_level):
+def send_chunks(filepath, total_chunks, qos_level, client):
     chunk_lengths = []
     with open(filepath, "rb") as f:
         for chunk_num in range(total_chunks):
@@ -156,10 +161,17 @@ def load_files():
     if not os.path.exists(DATA_DIR):
         print(f"Error: Directory '{DATA_DIR}' does not exist.")
 
+    min_size = 51 * 1024 * 1024  # 50 MB in bytes
+
     files = [
         f for f in os.listdir(DATA_DIR)
-        if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")
+        if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin") and os.path.getsize(os.path.join(DATA_DIR, f)) < min_size
     ]
+
+    # Sort by file size (smallest first)
+    # and os.path.getsize(os.path.join(DATA_DIR, f)) > min_size
+    files.sort(key=lambda f: os.path.getsize(os.path.join(DATA_DIR, f)))
+
     return files
 
 
@@ -170,6 +182,9 @@ def send_file(filename, qos_level):
         print(f"File {filepath} not found.")
         return
 
+    client = make_client()
+    client.loop_start()
+
     file_size, total_chunks = calculate_total_chunks(filepath)
     print(f"\n--- Starting transfer: {filename} ({file_size / 1024 / 1024:.2f} MB) ---")
 
@@ -178,28 +193,33 @@ def send_file(filename, qos_level):
     ack_latency = 0
     metadata_ack_event.clear()
 
-    monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
-    monitor.start()
-
-    # start_time = time.time()
-    # msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level)
+    # monitor = ResourceMonitor(sample_interval=0.05)  # 50 ms granularity
+    # monitor.start()
     #
-    # if not metadata_ack_event.wait(timeout=10):
-    #     print("WARNING: Timed out waiting for metadata ACK, proceeding anyway.")
+    # rx0, tx0 = get_iface_bytes()
+    start_time = time.time()
+    msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level, client)
+
+    if not metadata_ack_event.wait(timeout=10):
+        print("WARNING: Timed out waiting for metadata ACK, proceeding anyway.")
+
+
+    chunk_lengths = send_chunks(filepath, total_chunks, qos_level, client)
+
+
+    end_time = time.time()
+    client.loop_stop()
+    client.disconnect()
+    # rx1, tx1 = get_iface_bytes()
+    # with WireSnapshot() as wire:  # ← start
+    #     start_time = time.time()
+    #     msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level)
     #
-    # chunk_lengths = send_chunks(filepath, total_chunks, qos_level)
+    #     if not metadata_ack_event.wait(timeout=10):
+    #         print("WARNING: Timed out waiting for metadata ACK, proceeding anyway.")
     #
-    # end_time = time.time()
-
-    with WireSnapshot() as wire:  # ← start
-        start_time = time.time()
-        msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level)
-
-        if not metadata_ack_event.wait(timeout=10):
-            print("WARNING: Timed out waiting for metadata ACK, proceeding anyway.")
-
-        chunk_lengths = send_chunks(filepath, total_chunks, qos_level)
-        end_time = time.time()
+    #     chunk_lengths = send_chunks(filepath, total_chunks, qos_level)
+    #     end_time = time.time()
     duration = end_time - start_time
 
     goodput_mbps = (file_size * 8) / (duration * 1_000_000)
@@ -212,11 +232,13 @@ def send_file(filename, qos_level):
     #     qos_level,
     #     file_size,
     # )
-    overhead_bytes = wire.total_bytes - file_size
-    overhead_pct = (overhead_bytes / file_size) * 100 if file_size else 0.0
-    print(f"  -> Payload Overhead: {overhead_bytes:.0f} bytes ({overhead_pct:.4f}%)")
+    # total_wire_bytes = (rx1 - rx0) + (tx1 - tx0)
+    # overhead_bytes = total_wire_bytes - file_size
 
-    resource_stats = monitor.stop()
+    # overhead_pct = (overhead_bytes / file_size) * 100 if file_size else 0.0
+    # print(f"  -> Payload Overhead: {overhead_bytes:.0f} bytes ({overhead_pct:.4f}%)")
+
+    # resource_stats = monitor.stop()
 
     measurements = [
         {
@@ -227,11 +249,7 @@ def send_file(filename, qos_level):
             "sender_duration": f"{duration:.2f}",
             "receiver_duration": "X",
             "latency": f"{ack_latency:.4f}",
-            "goodput_mbps": f"{goodput_mbps:.3f}",
-            "payload_overhead": f"{overhead_bytes:.0f}",
-            "avg_cpu_usage": f"{resource_stats['avg_cpu_pct']:.2f}%",
-            "peak_ram_usage": f"{resource_stats['peak_rss_mb']:.2f} MB",
-            "energy_est": f"{resource_stats['energy_j']:.4f}"
+            "goodput_mbps": f"{goodput_mbps:.3f}"
         }
     ]
     write_to_file_mqtt(measurements)
@@ -239,14 +257,14 @@ def send_file(filename, qos_level):
     print("Finished sending file.")
     print(f"Latency: {ack_latency:.4f}s | Sender Time: {duration:.2f}s")
 
-    print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
-    print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
-    print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
+    # print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
+    # print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")
+    # print(f"  -> Energy est: {resource_stats['energy_j']:.4f} J")
     time.sleep(3)
 
 
 def qos_levels_loop(files):
-    for qos_level in range(0, 3):
+    for qos_level in range(1, 3):
         for filename in files:
             send_file(filename, qos_level)
 
@@ -254,8 +272,14 @@ def qos_levels_loop(files):
 if __name__ == "__main__":
     time.sleep(5)  # Wait for broker and receiver to spin up
 
+
+    with open("/proc/net/dev") as f:
+        print(f.read())  # see all interfaces and their current counters
+    time.sleep(5)
+
     files = load_files()
     qos_levels_loop(files)
 
+
     time.sleep(10)
-    client.loop_stop()
+    # client.loop_stop()

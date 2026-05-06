@@ -1,0 +1,1 @@
+protocol,file_size,time_to_transfer,latency_tcp_rtt,latency_ttfb,payload_overhead,overhead_pct,goodput_mbps,integrity_ok,avg_cpu_usage,peak_ram_usage,energy_est

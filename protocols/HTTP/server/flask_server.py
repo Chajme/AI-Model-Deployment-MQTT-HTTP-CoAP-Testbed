@@ -16,7 +16,7 @@ def upload(filename):
     expected_checksum = request.headers.get("X-Checksum")
     actual_checksum = sha256(data)
 
-    # 🔒 Integrity check happens HERE (server-side)
+    # Integrity check happens HERE (server-side)
     if expected_checksum and expected_checksum != actual_checksum:
         print(f"[HTTP] CHECKSUM FAIL: {filename}")
         return Response("Checksum mismatch", status=400)

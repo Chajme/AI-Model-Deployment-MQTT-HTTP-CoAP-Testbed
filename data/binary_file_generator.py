@@ -31,8 +31,10 @@ def generate_files(file_sizes_kb: list, file_sizes_mb: list):
 
 
 if __name__ == "__main__":
-    file_sizes_kb = [250]
-    file_sizes_mb = [1, 5, 20, 50]
+    # file_sizes_kb = [250]
+    file_sizes_kb = []
+    # file_sizes_mb = [1, 5, 20, 50]
+    file_sizes_mb = [100, 200]
 
     generate_files(file_sizes_kb, file_sizes_mb)
 

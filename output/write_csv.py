@@ -67,6 +67,7 @@ def write_to_file_mqtt(data: list[dict]):
         'receiver_duration',
         'latency',
         'payload_overhead',
+        'overhead_pct',
         'goodput_mbps',
         'integrity_ok',
         'avg_cpu_usage',

@@ -1,0 +1,6 @@
+protocol,file_size,time_to_transfer,latency_tcp_rtt,latency_ttfb,payload_overhead,overhead_pct,goodput_mbps,integrity_ok,avg_cpu_usage,peak_ram_usage,energy_est
+http,1.0,18.609,0.78192,18.59203,108758,10.3720,0.451,True,0.35%,29.51 MB,0.0809
+http,20.0,353.556,0.41895,353.47607,1612106,7.6871,0.475,True,0.35%,32.16 MB,1.5314
+http,0.244140625,5.965,0.53177,5.86528,26554,10.3727,0.343,True,0.35%,31.38 MB,0.0260
+http,50.0,888.363,0.27374,888.36155,4123314,7.8646,0.472,True,0.35%,36.57 MB,3.8593
+http,5.0,88.530,0.29825,88.52835,379260,7.2338,0.474,True,0.34%,32.56 MB,0.3779
