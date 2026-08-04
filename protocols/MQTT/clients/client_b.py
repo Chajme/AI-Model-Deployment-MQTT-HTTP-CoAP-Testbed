@@ -11,6 +11,9 @@ TOPIC_CTRL = "file/control"
 TOPIC_DATA = "file/data"
 OUTPUT_DIR = "/app/output"
 
+PORT = 1883
+KEEPALIVE = 300
+
 # Global state to keep track of the incoming file
 current_file_handle = None
 expected_chunks = 0
@@ -26,15 +29,14 @@ transfer_start_time = 0
 
 expected_checksum = None
 
-# FIX #5: Track QoS sent by the sender (read from control message metadata).
-current_qos = "unknown"
+_current_qos = "unknown"
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
-def transfer_completed_handler():
-    global start_latency, transfer_start_time, expected_checksum, current_qos
+def _transfer_completed_handler():
+    global start_latency, transfer_start_time, expected_checksum, _current_qos
 
     transfer_duration = time.perf_counter() - transfer_start_time
     file_size_mb = received_bytes / (1024 * 1024)
@@ -59,7 +61,7 @@ def transfer_completed_handler():
         {
             "protocol": "mqtt",
             # FIX #5: Record the actual QoS used, read from the sender's metadata.
-            "qos": current_qos,
+            "qos": _current_qos,
             "side": "receiver",
             "file_size": file_size_mb,
             "sender_duration": "X",
@@ -85,7 +87,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     global current_file_handle, expected_chunks, received_chunks, \
         current_filename, start_latency, received_bytes, metadata_arrival_time, \
-        first_chunk_received, transfer_start_time, expected_checksum, current_qos
+        first_chunk_received, transfer_start_time, expected_checksum, _current_qos
 
     # Handle Metadata Message
     if msg.topic == TOPIC_CTRL:
@@ -104,7 +106,7 @@ def on_message(client, userdata, msg):
         expected_checksum = metadata.get("checksum")
 
         # FIX #5: Read the QoS level from the control message.
-        current_qos = metadata.get("qos", "unknown")
+        _current_qos = metadata.get("qos", "unknown")
 
         filepath = os.path.join(OUTPUT_DIR, current_filename)
         print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks). Opening {filepath}...")
@@ -137,16 +139,17 @@ def on_message(client, userdata, msg):
             print(f"Received chunk {received_chunks}/{expected_chunks}")
 
         if received_chunks == expected_chunks:
-            transfer_completed_handler()
+            _transfer_completed_handler()
 
             received_bytes = 0
             current_file_handle.close()
             current_file_handle = None
 
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
+if __name__ == '__main__':
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
 
-client.connect(BROKER, 1883, 300)
-client.loop_forever()
+    client.connect(BROKER, PORT, KEEPALIVE)
+    client.loop_forever()
