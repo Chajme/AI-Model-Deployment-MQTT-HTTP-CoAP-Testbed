@@ -1,13 +1,10 @@
 from flask import Flask, request, Response
 import os
 
+from common.file_manager import save_file
 from output.integrity_checker import sha256
 
 app = Flask(__name__)
-
-OUTPUT_DIR = "/app/output"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
 
 @app.route("/upload/<filename>", methods=["PUT"])
 def upload(filename):
@@ -21,10 +18,7 @@ def upload(filename):
         print(f"[HTTP] CHECKSUM FAIL: {filename}")
         return Response("Checksum mismatch", status=400)
 
-    filepath = os.path.join(OUTPUT_DIR, filename)
-
-    with open(filepath, "wb") as f:
-        f.write(data)
+    save_file(filename, data=data)
 
     print(f"[HTTP] OK: {filename} ({len(data)} bytes)")
     return Response("OK", status=200)

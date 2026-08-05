@@ -3,13 +3,13 @@ import aiocoap.resource as resource
 import aiocoap
 import os
 
+from common.file_manager import save_file
 from output.integrity_checker import compute_sha256_file, sha256
 
-OUTPUT_DIR = "/app/output"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
 class BinaryUploadResource(resource.Resource):
-    async def render_put(self, request):
+
+    @staticmethod
+    async def render_put(request):
         # Extract filename from the query string (e.g., ?file=my_model.bin)
         filename = "unknown.bin"
         expected_checksum = None
@@ -19,8 +19,6 @@ class BinaryUploadResource(resource.Resource):
                 filename = query.split("=")[1]
             elif query.startswith("checksum="):
                 expected_checksum = query.split("=")[1]
-
-        filepath = os.path.join(OUTPUT_DIR, filename)
 
         print(f"--- CoAP: Receiving file '{filename}' ({len(request.payload)} bytes) ---")
 
@@ -33,8 +31,7 @@ class BinaryUploadResource(resource.Resource):
                 payload=b"Checksum mismatch"
             )
 
-        with open(filepath, "wb") as f:
-            f.write(request.payload)
+        save_file(filename, data=request.payload)
 
         return aiocoap.Message(code=aiocoap.CHANGED, payload=f"Saved {filename}".encode())
 

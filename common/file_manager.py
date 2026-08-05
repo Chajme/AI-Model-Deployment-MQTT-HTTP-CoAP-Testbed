@@ -1,6 +1,7 @@
 import os
 
 DATA_DIR = "/app/data"
+OUTPUT_DIR = "/app/output"
 
 def load_binary_files():
     if not os.path.exists(DATA_DIR):
@@ -18,3 +19,14 @@ def load_binary_files():
 
     print(f"Found {len(files)} file(s).\n")
     return files
+
+def save_file(filename, data):
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR , exist_ok=True)
+
+    filepath = os.path.join(OUTPUT_DIR, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(data)
+
+    print(f"Saved '{filename}' successfully.")

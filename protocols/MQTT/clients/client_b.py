@@ -31,8 +31,6 @@ expected_checksum = None
 
 _current_qos = "unknown"
 
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
 
 def _transfer_completed_handler():
     global start_latency, transfer_start_time, expected_checksum, _current_qos
