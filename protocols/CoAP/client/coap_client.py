@@ -8,9 +8,9 @@ from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 from output.integrity_checker import compute_sha256_file, sha256
 from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_coap
+from common.file_manager import load_binary_files
 
 # Use the largest standard CoAP block: SZX=6 -> 2^(4+6) = 1024 bytes
-# For non-constrained servers you may negotiate SZX=7 (non-standard, 2048 B)
 _BLOCK_SZX = MAX_REGULAR_BLOCK_SIZE_EXP  # 6
 _BLOCK_SIZE = 2 ** (4 + _BLOCK_SZX)      # 1024 bytes
 _EXTRA_FRAMING_PER_BLOCK = 24
@@ -20,7 +20,7 @@ DATA_DIR = "/app/data"
 SERVER_URI = "coap://coap-server/upload"
 MAX_RETRIES = 3
 
-async def get_latency(context, uri):
+async def _get_latency(context, uri):
     try:
         req = Message(code=GET, uri=uri)
         t0 = time.perf_counter()
@@ -30,21 +30,17 @@ async def get_latency(context, uri):
         return 0.0
 
 
-def calculate_file_size(payload, filename: str):
+def _calculate_file_size(payload, filename: str):
     file_size_mb = len(payload) / (1024 * 1024)
     print(f"\n--- Starting CoAP Transfer: {filename} ({file_size_mb:.2f} MB) ---")
     return file_size_mb
 
-def load_files():
-    files = [
-        f for f in os.listdir(DATA_DIR)
-        if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")
-    ]
 
-    return files
-
-
-def calculate_payload_overhead(request_msg, response_msg, file_size_bytes):
+def _calculate_payload_overhead(request_msg, response_msg, file_size_bytes):
+    """
+    Calculated overhead based on file size and block size
+    !!! NOT A RELIABLE WAY to measure overhead !!!
+    """
     try:
         req_oh = len(request_msg.encode()) - file_size_bytes
         res_oh = len(response_msg.encode()) - len(response_msg.payload or b"")
@@ -70,7 +66,7 @@ async def transfer_file(context, filename):
     file_size_mb = file_size_bytes / (1024 * 1024)
     print(f"\n--- CoAP Transfer: {filename} ({file_size_mb:.2f} MB) ---")
 
-    latency = await get_latency(context, SERVER_URI)
+    latency = await _get_latency(context, SERVER_URI)
     retries = 0
     response = None
     goodput_mbps = 0.0
@@ -105,7 +101,7 @@ async def transfer_file(context, filename):
 
 
 
-    total_overhead = calculate_payload_overhead(request, response, file_size_bytes)
+    total_overhead = _calculate_payload_overhead(request, response, file_size_bytes)
     overhead_pct = (total_overhead / file_size_bytes) * 100
     print(f"Result: {response.code} | Time: {transfer_time:.2f}s | Retries: {retries}")
 
@@ -123,11 +119,8 @@ async def transfer_file(context, filename):
 
 
 async def transfer_all_files():
-    files = [f for f in os.listdir(DATA_DIR)
-             if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")]
-    if not files:
-        print("No .bin files found.")
-        return
+    files = load_binary_files()
+
     context = await Context.create_client_context()
     for filename in sorted(files):
         await transfer_file(context, filename)

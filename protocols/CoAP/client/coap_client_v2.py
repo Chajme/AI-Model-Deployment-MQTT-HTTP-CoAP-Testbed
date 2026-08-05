@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from aiocoap import Message, Context, PUT, GET
 from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 
+from common.file_manager import load_binary_files
 from output.integrity_checker import compute_sha256_file, sha256
 # from output.resource_monitor import ResourceMonitor
 from output.write_csv import write_to_file_coap, write_to_file_coap_2
@@ -91,22 +92,6 @@ def calculate_payload_overhead(filename: str, checksum: str, file_size_bytes: in
     uri_query_overhead = (len(filename) + 4) + (len(checksum) + 4)
 
     return per_block * num_blocks + uri_path_overhead + uri_query_overhead
-
-
-def load_files() -> list[str]:
-
-    files = [
-        f for f in os.listdir(DATA_DIR)
-        if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")
-    ]
-
-    files.sort(key=lambda f: os.path.getsize(os.path.join(DATA_DIR, f)))
-
-    for f in files:
-        size = os.path.getsize(os.path.join(DATA_DIR, f))
-        print(f, size)
-
-    return files
 
 
 async def transfer_file(context: Context, filename: str) -> None:
@@ -199,7 +184,7 @@ async def transfer_file(context: Context, filename: str) -> None:
 
 
 async def transfer_all_files() -> None:
-    files = load_files()
+    files = load_binary_files()
     if not files:
         print("No .bin files found.")
         return

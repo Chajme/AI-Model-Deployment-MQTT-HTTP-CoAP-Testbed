@@ -6,13 +6,14 @@ from urllib.parse import urlparse
 import math
 import struct
 
+from common.file_manager import load_binary_files
 from output.integrity_checker import compute_sha256_file
 from output.resource_monitor import ResourceMonitor
+from output.tcp_capture import start_capture, get_network_subnet, stop_capture
 from output.write_csv import write_to_file_http_2
 from output.net_stats import WireSnapshot
 
 BASE_URL = "http://http-server:8000"
-DATA_DIR = "/app/data"
 
 TCP_HEADER = 20
 IP_HEADER = 20
@@ -63,27 +64,6 @@ def calculate_total_http_overhead(response, file_size_bytes: int) -> int:
     transport_overhead = estimate_http_transport_overhead(file_size_bytes)
 
     return http_overhead + transport_overhead
-
-
-
-def load_files():
-    print(f"\n--- Phase 1: Scanning {DATA_DIR} for Binary Files ---")
-
-    if not os.path.exists(DATA_DIR):
-        print(f"Error: Directory '{DATA_DIR}' does not exist.")
-        return None
-
-    files = [
-        f for f in os.listdir(DATA_DIR)
-        if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")
-    ]
-
-    if not files:
-        print(f"No files found in '{DATA_DIR}' to transfer.")
-        return None
-
-    print(f"Found {len(files)} file(s). Starting streaming transfers...\n")
-    return files
 
 
 def calculate_logging_size(filepath: str, filename: str):
@@ -146,11 +126,15 @@ def calculate_payload_overhead(response: requests.Response) -> int:
 
 
 def transfer_binary_files():
-    files = load_files()
+    files = load_binary_files()
+
     if not files:
         return
 
     for filename in files:
+        network_subnet = get_network_subnet("http-net")
+        capture = start_capture(network_subnet, "output/http/capture.pcap")
+
         filepath = os.path.join(DATA_DIR, filename)
         checksum = compute_sha256_file(filepath)
         upload_url = f"{BASE_URL}/upload/{filename}"
@@ -227,6 +211,8 @@ def transfer_binary_files():
                 print(f"  -> Integrity OK: {integrity_ok}")
 
             resource_stats = monitor.stop()
+
+            stop_capture(capture)
 
             print(f"  -> Avg CPU:    {resource_stats['avg_cpu_pct']:.2f}%")
             print(f"  -> Peak RAM:   {resource_stats['peak_rss_mb']:.2f} MB")

@@ -1,3 +1,8 @@
+"""
+    NQTT client a
+    / used by docker-compose-tc.yaml
+"""
+
 import paho.mqtt.client as mqtt
 import hashlib
 import time
@@ -5,13 +10,13 @@ import os
 import json
 import math
 
+from common.file_manager import load_binary_files
 from output.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"
 TOPIC_CTRL = "file/control"
 TOPIC_DATA = "file/data"
-DATA_DIR = "/app/data"
 
 # 256 KB chunk size is generally safe for Mosquitto defaults
 # CHUNK_SIZE = 256 * 1024
@@ -64,7 +69,7 @@ client.on_publish = on_publish
 client.connect(BROKER, 1883, 300)
 client.loop_start()
 
-def calculate_total_chunks(filepath):
+def _calculate_total_chunks(filepath):
     file_size = os.path.getsize(filepath)
     total_chunks = math.ceil(file_size / CHUNK_SIZE)
 
@@ -106,17 +111,6 @@ def send_chunks(filepath, total_chunks, qos_level):
                 last_msg_info.wait_for_publish(timeout=60)
     return chunk_lengths
 
-def load_files():
-    if not os.path.exists(DATA_DIR):
-        print(f"Error: Directory '{DATA_DIR}' does not exist.")
-
-    # Grab all files in the directory
-    files = [
-        f for f in os.listdir(DATA_DIR)
-        if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")
-    ]
-
-    return files
 
 def send_file(filename, qos_level):
     global ack_latency
@@ -125,7 +119,7 @@ def send_file(filename, qos_level):
         print(f"File {filepath} not found.")
         return
 
-    file_size, total_chunks = calculate_total_chunks(filepath)
+    file_size, total_chunks = _calculate_total_chunks(filepath)
     print(f"\n--- Starting transfer: {filename} ({file_size / 1024 / 1024:.2f} MB) ---")
 
     checksum = compute_sha256_file(filepath)
@@ -176,7 +170,7 @@ def send_file(filename, qos_level):
     print("Finished sending file.")
     print(f"Latency: {ack_latency:.4f}s | Sender Time: {duration:.2f}s")
 
-def qos_levels_loop(files):
+def _qos_levels_loop(files):
     for qos_level in range (0, 3):
         for filename in files:
             send_file(filename, qos_level)
@@ -184,8 +178,8 @@ def qos_levels_loop(files):
 if __name__ == "__main__":
     time.sleep(5)  # Wait for broker and receiver to spin up
 
-    files = load_files()
-    qos_levels_loop(files)
+    files = load_binary_files()
+    _qos_levels_loop(files)
 
     time.sleep(10)
     client.loop_stop()

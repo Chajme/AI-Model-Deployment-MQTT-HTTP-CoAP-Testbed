@@ -31,7 +31,6 @@ expected_checksum = None
 
 _current_qos = "unknown"
 
-# Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
@@ -60,7 +59,6 @@ def _transfer_completed_handler():
     measurements = [
         {
             "protocol": "mqtt",
-            # FIX #5: Record the actual QoS used, read from the sender's metadata.
             "qos": _current_qos,
             "side": "receiver",
             "file_size": file_size_mb,
@@ -77,9 +75,7 @@ def _transfer_completed_handler():
 
 def on_connect(client, userdata, flags, rc):
     print("Connected to broker. Listening for files...")
-    # FIX #1: Subscribe at QoS 2 (the maximum) on both topics so the broker
-    # delivers at the sender's published QoS level without artificially
-    # capping or misrepresenting the negotiated QoS.
+    # Set QoS to max, the resulting QoS should be the one from sender
     client.subscribe(TOPIC_CTRL, qos=2)
     client.subscribe(TOPIC_DATA, qos=2)
 

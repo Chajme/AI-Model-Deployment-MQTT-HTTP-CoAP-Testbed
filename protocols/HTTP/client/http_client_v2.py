@@ -4,31 +4,11 @@ import os
 import socket
 from urllib.parse import urlparse
 
+from common.file_manager import load_binary_files
 from output.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_http_2
 
 BASE_URL = "http://http-server:8000"
-DATA_DIR = "/app/data"
-
-
-def load_files():
-    print(f"\n--- Phase 1: Scanning {DATA_DIR} for Binary Files ---")
-
-    if not os.path.exists(DATA_DIR):
-        print(f"Error: Directory '{DATA_DIR}' does not exist.")
-        return None
-
-    files = [
-        f for f in os.listdir(DATA_DIR)
-        if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin")
-    ]
-
-    if not files:
-        print(f"No files found in '{DATA_DIR}' to transfer.")
-        return None
-
-    print(f"Found {len(files)} file(s). Starting streaming transfers...\n")
-    return files
 
 
 def calculate_logging_size(filepath: str, filename: str):
@@ -91,7 +71,7 @@ def calculate_payload_overhead(response: requests.Response) -> int:
 
 
 def transfer_binary_files():
-    files = load_files()
+    files = load_binary_files()
     if not files:
         return
 

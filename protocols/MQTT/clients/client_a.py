@@ -1,3 +1,8 @@
+"""
+    Basic functionality and measurements
+    / used by docker-compose.yaml & docker-compose-automated.yaml
+"""
+
 import paho.mqtt.client as mqtt
 import time
 import os
@@ -5,6 +10,7 @@ import json
 import math
 import threading
 
+from common.file_manager import load_binary_files
 from output.integrity_checker import compute_sha256_file
 from output.tcp_capture import get_network_subnet, start_capture, stop_capture
 from output.write_csv import write_to_file_mqtt
@@ -12,7 +18,6 @@ from output.write_csv import write_to_file_mqtt
 BROKER = "mosquitto-broker"
 TOPIC_CTRL = "file/control"
 TOPIC_DATA = "file/data"
-DATA_DIR = "/app/data"
 
 
 # CHUNK_SIZE = 256 * 1024
@@ -151,24 +156,6 @@ def send_chunks(filepath, total_chunks, qos_level, client):
     return chunk_lengths
 
 
-def load_files():
-    if not os.path.exists(DATA_DIR):
-        print(f"Error: Directory '{DATA_DIR}' does not exist.")
-
-    min_size = 51 * 1024 * 1024  # 50 MB in bytes
-
-    files = [
-        f for f in os.listdir(DATA_DIR)
-        if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith(".bin") and os.path.getsize(os.path.join(DATA_DIR, f)) < min_size
-    ]
-
-    # Sort by file size (smallest first)
-    # and os.path.getsize(os.path.join(DATA_DIR, f)) > min_size
-    files.sort(key=lambda f: os.path.getsize(os.path.join(DATA_DIR, f)))
-
-    return files
-
-
 def send_file(filename, qos_level):
     global ack_latency
     filepath = os.path.join(DATA_DIR, filename)
@@ -247,7 +234,7 @@ if __name__ == "__main__":
         print(f.read())  # see all interfaces and their current counters
     time.sleep(5)
 
-    files = load_files()
+    files = load_binary_files()
     qos_levels_loop(files)
 
 
