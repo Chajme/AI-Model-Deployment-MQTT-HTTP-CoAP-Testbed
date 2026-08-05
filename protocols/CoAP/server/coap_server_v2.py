@@ -1,10 +1,9 @@
 import asyncio
 import aiocoap.resource as resource
 import aiocoap
-import os
 
 from common.file_manager import save_file
-from output.integrity_checker import sha256
+from common.integrity_checker import sha256
 
 class BinaryUploadResource(resource.Resource):
 

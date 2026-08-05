@@ -1,8 +1,7 @@
 from flask import Flask, request, Response
-import os
 
 from common.file_manager import save_file
-from output.integrity_checker import sha256
+from common.integrity_checker import sha256
 
 app = Flask(__name__)
 

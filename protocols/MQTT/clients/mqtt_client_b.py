@@ -1,10 +1,9 @@
 import paho.mqtt.client as mqtt
 import json
-import os
 import time
 
 from common.file_manager import get_file_path, output_directory_exists
-from output.integrity_checker import compute_sha256_file
+from common.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_mqtt
 
 PORT = 1883

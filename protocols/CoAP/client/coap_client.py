@@ -5,8 +5,7 @@ import os
 from aiocoap import Message, Context, PUT, GET
 from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 
-from output.integrity_checker import compute_sha256_file, sha256
-from output.resource_monitor import ResourceMonitor
+from common.integrity_checker import sha256
 from output.write_csv import write_to_file_coap
 from common.file_manager import load_binary_files
 

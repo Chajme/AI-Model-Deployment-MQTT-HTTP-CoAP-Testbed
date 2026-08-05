@@ -7,11 +7,11 @@ import math
 import struct
 
 from common.file_manager import load_binary_files
-from output.integrity_checker import compute_sha256_file
-from output.resource_monitor import ResourceMonitor
-from output.tcp_capture import start_capture, get_network_subnet, stop_capture
+from common.integrity_checker import compute_sha256_file
+from common.resource_monitor import ResourceMonitor
+from common.tcp_capture import start_capture, get_network_subnet, stop_capture
 from output.write_csv import write_to_file_http_2
-from output.net_stats import WireSnapshot
+from common.net_stats import WireSnapshot
 
 BASE_URL = "http://http-server:8000"
 

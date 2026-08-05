@@ -9,9 +9,9 @@ from aiocoap import Message, Context, PUT, GET
 from aiocoap.numbers.constants import MAX_REGULAR_BLOCK_SIZE_EXP
 
 from common.file_manager import load_binary_files
-from output.integrity_checker import compute_sha256_file, sha256
+from common.integrity_checker import sha256
 # from output.resource_monitor import ResourceMonitor
-from output.write_csv import write_to_file_coap, write_to_file_coap_2
+from output.write_csv import write_to_file_coap_2
 # from output.net_stats import WireSnapshot, get_iface_bytes
 
 # logging.basicConfig(level=logging.INFO)

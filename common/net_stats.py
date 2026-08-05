@@ -1,4 +1,4 @@
-# output/net_stats.py  — shared by all three protocol clients
+""" Attempt to measure overhead - doesn't seem to work as intended """
 
 def get_iface_bytes(iface: str = "eth0") -> tuple[int, int]:
     """

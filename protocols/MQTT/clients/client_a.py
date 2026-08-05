@@ -11,8 +11,8 @@ import math
 import threading
 
 from common.file_manager import load_binary_files
-from output.integrity_checker import compute_sha256_file
-from output.tcp_capture import get_network_subnet, start_capture, stop_capture
+from common.integrity_checker import compute_sha256_file
+from common.tcp_capture import get_network_subnet, start_capture, stop_capture
 from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"

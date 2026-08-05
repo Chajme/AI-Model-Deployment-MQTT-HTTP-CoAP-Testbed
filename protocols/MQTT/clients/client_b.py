@@ -1,10 +1,9 @@
 import paho.mqtt.client as mqtt
 import json
-import os
 import time
 
 from common.file_manager import get_file_path, output_directory_exists
-from output.integrity_checker import compute_sha256_file
+from common.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"
@@ -97,12 +96,12 @@ def on_message(client, userdata, msg):
 
         expected_checksum = metadata.get("checksum")
 
-        # FIX #5: Read the QoS level from the control message.
+        # Read the QoS level from the control message.
         _current_qos = metadata.get("qos", "unknown")
 
         print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks).")
 
-        # FIX #6: Warn explicitly when a new transfer arrives before the
+        # Warn explicitly when a new transfer arrives before the
         # previous one completed, then close the stale handle so we don't
         # leak file descriptors or silently produce a corrupt file.
         if current_file_handle and not current_file_handle.closed:

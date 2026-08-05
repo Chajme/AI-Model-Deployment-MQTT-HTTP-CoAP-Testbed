@@ -3,7 +3,7 @@ import time
 import os
 
 from common.file_manager import load_binary_files
-from output.integrity_checker import compute_sha256_file
+from common.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_http
 
 BASE_URL = "http://http-server:8000"
