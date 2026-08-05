@@ -1,3 +1,8 @@
+"""
+    Script to automate measurements
+    / allows to run multiple profiles and multiple protocols one after the other
+"""
+
 import subprocess
 import itertools
 import os
