@@ -21,8 +21,7 @@ def load_binary_files():
     return files
 
 def save_file(filename, data):
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR , exist_ok=True)
+    output_directory_exists()
 
     filepath = os.path.join(OUTPUT_DIR, filename)
 
@@ -30,3 +29,10 @@ def save_file(filename, data):
         f.write(data)
 
     print(f"Saved '{filename}' successfully.")
+
+def get_file_path(filename):
+    return os.path.join(OUTPUT_DIR, filename)
+
+def output_directory_exists():
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(OUTPUT_DIR, exist_ok=True)

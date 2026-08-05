@@ -3,13 +3,16 @@ import json
 import os
 import time
 
+from common.file_manager import get_file_path, output_directory_exists
 from output.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_mqtt
+
+PORT = 1883
+KEEPALIVE = 300
 
 BROKER = "mosquitto-broker"
 TOPIC_CTRL = "file/control"
 TOPIC_DATA = "file/data"
-OUTPUT_DIR = "/app/output"
 
 # Global state to keep track of the incoming file
 current_file_handle = None
@@ -26,18 +29,13 @@ transfer_start_time = 0
 
 expected_checksum = None
 
-# Ensure output directory exists
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
 def transfer_completed_handler():
     global start_latency, transfer_start_time, expected_checksum
 
     transfer_duration = time.perf_counter() - transfer_start_time
     file_size_mb = received_bytes / (1024 * 1024)
 
-    filepath = os.path.join(OUTPUT_DIR, current_filename)
-
-    actual_checksum = compute_sha256_file(filepath)
+    actual_checksum = compute_sha256_file(get_file_path(current_filename))
     integrity_ok = (expected_checksum == actual_checksum)
 
     file_size_bytes = received_bytes
@@ -92,13 +90,12 @@ def on_message(client, userdata, msg):
 
         expected_checksum = metadata.get("checksum")
 
-        filepath = os.path.join(OUTPUT_DIR, current_filename)
-        print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks). Opening {filepath}...")
+        print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks).")
 
         # Open file in 'wb' (write binary) mode
         if current_file_handle and not current_file_handle.closed:
             current_file_handle.close()
-        current_file_handle = open(filepath, "wb")
+        current_file_handle = open(get_file_path(filename=current_filename), "wb")
 
     # Handle Raw Binary Chunk Message
     elif msg.topic == TOPIC_DATA and current_file_handle is not None:
@@ -125,9 +122,12 @@ def on_message(client, userdata, msg):
             current_file_handle = None
 
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
+if __name__ == "__main__":
+    output_directory_exists()
 
-client.connect(BROKER, 1883, 300)
-client.loop_forever()
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    client.connect(BROKER, PORT, KEEPALIVE)
+    client.loop_forever()

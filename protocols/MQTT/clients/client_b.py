@@ -3,13 +3,13 @@ import json
 import os
 import time
 
+from common.file_manager import get_file_path, output_directory_exists
 from output.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"
 TOPIC_CTRL = "file/control"
 TOPIC_DATA = "file/data"
-OUTPUT_DIR = "/app/output"
 
 PORT = 1883
 KEEPALIVE = 300
@@ -38,9 +38,7 @@ def _transfer_completed_handler():
     transfer_duration = time.perf_counter() - transfer_start_time
     file_size_mb = received_bytes / (1024 * 1024)
 
-    filepath = os.path.join(OUTPUT_DIR, current_filename)
-
-    actual_checksum = compute_sha256_file(filepath)
+    actual_checksum = compute_sha256_file(get_file_path(current_filename))
     integrity_ok = (expected_checksum == actual_checksum)
 
     file_size_bytes = received_bytes
@@ -102,8 +100,7 @@ def on_message(client, userdata, msg):
         # FIX #5: Read the QoS level from the control message.
         _current_qos = metadata.get("qos", "unknown")
 
-        filepath = os.path.join(OUTPUT_DIR, current_filename)
-        print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks). Opening {filepath}...")
+        print(f"\nIncoming file: {current_filename} ({expected_chunks} chunks).")
 
         # FIX #6: Warn explicitly when a new transfer arrives before the
         # previous one completed, then close the stale handle so we don't
@@ -115,7 +112,7 @@ def on_message(client, userdata, msg):
             )
             current_file_handle.close()
 
-        current_file_handle = open(filepath, "wb")
+        current_file_handle = open(get_file_path(current_filename), "wb")
 
     # Handle Raw Binary Chunk Message
     elif msg.topic == TOPIC_DATA and current_file_handle is not None:
@@ -141,6 +138,8 @@ def on_message(client, userdata, msg):
 
 
 if __name__ == '__main__':
+    output_directory_exists()
+
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
