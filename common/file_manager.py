@@ -33,8 +33,11 @@ def save_file(filename, data):
 
     print(f"Saved '{filename}' successfully.")
 
-def get_file_path(filename):
+def get_file_path_output(filename):
     return os.path.join(OUTPUT_DIR, filename)
+
+def get_file_path_input(filename):
+    return os.path.join(DATA_DIR, filename)
 
 def output_directory_exists():
     if not os.path.exists(DATA_DIR):

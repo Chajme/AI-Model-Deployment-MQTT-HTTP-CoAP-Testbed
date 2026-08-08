@@ -2,7 +2,7 @@ import paho.mqtt.client as mqtt
 import json
 import time
 
-from common.file_manager import get_file_path, output_directory_exists
+from common.file_manager import get_file_path_input, output_directory_exists, get_file_path_output
 from common.integrity_checker import compute_sha256_file
 from output.write_csv import write_to_file_mqtt
 
@@ -37,7 +37,7 @@ def _transfer_completed_handler():
     transfer_duration = time.perf_counter() - transfer_start_time
     file_size_mb = received_bytes / (1024 * 1024)
 
-    actual_checksum = compute_sha256_file(get_file_path(current_filename))
+    actual_checksum = compute_sha256_file(get_file_path_output(current_filename))
     integrity_ok = (expected_checksum == actual_checksum)
 
     file_size_bytes = received_bytes
@@ -111,7 +111,7 @@ def on_message(client, userdata, msg):
             )
             current_file_handle.close()
 
-        current_file_handle = open(get_file_path(current_filename), "wb")
+        current_file_handle = open(get_file_path_output(current_filename), "wb")
 
     # Handle Raw Binary Chunk Message
     elif msg.topic == TOPIC_DATA and current_file_handle is not None:

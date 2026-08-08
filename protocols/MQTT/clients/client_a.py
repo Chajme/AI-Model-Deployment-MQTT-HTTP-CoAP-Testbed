@@ -11,7 +11,7 @@ import json
 import math
 import threading
 
-from common.file_manager import load_binary_files, get_file_path
+from common.file_manager import load_binary_files, get_file_path_input
 from common.integrity_checker import compute_sha256_file
 from common.packet_capture import start_capture_run, stop_capture_run
 from output.write_csv import write_to_file_mqtt
@@ -159,7 +159,7 @@ def send_chunks(filepath, total_chunks, qos_level, client):
 
 def send_file(filename, qos_level):
     global ack_latency
-    filepath = os.path.join(get_file_path(filename))
+    filepath = os.path.join(get_file_path_input(filename))
     if not os.path.exists(filepath):
         print(f"File {filepath} not found.")
         return
