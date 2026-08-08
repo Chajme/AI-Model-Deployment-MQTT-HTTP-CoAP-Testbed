@@ -1,11 +1,14 @@
 import os
 
-DATA_DIR = "/app/data"
-OUTPUT_DIR = "/app/output"
+# DATA_DIR = "/app/data"
+# OUTPUT_DIR = "/app/output"
+
+DATA_DIR = os.getenv("DATA_DIR", "./data")
+OUTPUT_DIR = os.getenv("OUTPUT_DIR", "./output")
 
 def load_binary_files():
     if not os.path.exists(DATA_DIR):
-        return Exception("Error: Directory '{DATA_DIR}' does not exist.")
+        raise  Exception("Error: Directory '{DATA_DIR}' does not exist.")
 
     files = [
         f for f in os.listdir(DATA_DIR)
@@ -13,7 +16,7 @@ def load_binary_files():
     ]
 
     if not files:
-        return Exception("No bin files found in '{DATA_DIR}'.")
+        raise  Exception("No bin files found in '{DATA_DIR}'.")
 
     files.sort(key=lambda f: os.path.getsize(os.path.join(DATA_DIR, f)))
 

@@ -9,7 +9,7 @@ import struct
 from common.file_manager import load_binary_files
 from common.integrity_checker import compute_sha256_file
 from common.resource_monitor import ResourceMonitor
-from common.tcp_capture import start_capture, get_network_subnet, stop_capture
+from common.packet_capture import start_capture, get_network_subnet, stop_capture
 from output.write_csv import write_to_file_http_2
 from common.net_stats import WireSnapshot
 

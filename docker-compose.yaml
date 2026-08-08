@@ -14,7 +14,7 @@ services:
 
   mqtt-client-a:
     build: ./
-    command: python -m protocols.MQTT.clients.client_a
+#    command: python -m protocols.MQTT.clients.client_a
     cap_add:
       - NET_ADMIN
 #    command: [ "/app/scripts/network_chaos.sh" ]
@@ -23,12 +23,14 @@ services:
     volumes:
       - ./output:/app/output
       - ./:/app
+      - ./data:/app/data
     networks:
       - mqtt-net
     environment:
 #      - APP_COMMAND=python -m protocols.MQTT.clients.client_a
 #      - NETWORK_PROFILE=iot   # or good/harsh/mobile/satellite
       - MEASUREMENT_SUFFIX=_testing
+    entrypoint: ["sleep", "infinity"]
 
   mqtt-client-b:
     build: ./
@@ -47,6 +49,21 @@ services:
 #      - APP_COMMAND=python -m protocols.MQTT.clients.client_b
 #      - NETWORK_PROFILE=iot
       - MEASUREMENT_SUFFIX=_testing
+
+  mqtt-capture:
+    image: nicolaka/netshoot   # small image with tcpdump preinstalled
+    depends_on:
+      - mosquitto-broker
+    network_mode: "service:mosquitto-broker"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./output/pcap:/pcap
+    # Stays alive but idle -- tcpdump is started/stopped per transfer via
+    # `docker compose exec mqtt-capture tcpdump ...` from the test harness,
+    # so each run gets its own pcap file instead of one long capture.
+    entrypoint: [ "sleep", "infinity" ]
 
   # ========================
   # HTTP

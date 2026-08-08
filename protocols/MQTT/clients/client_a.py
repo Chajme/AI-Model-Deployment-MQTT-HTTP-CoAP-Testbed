@@ -2,6 +2,7 @@
     Basic functionality and measurements
     / used by docker-compose.yaml & docker-compose-automated.yaml
 """
+import argparse
 
 import paho.mqtt.client as mqtt
 import time
@@ -10,9 +11,9 @@ import json
 import math
 import threading
 
-from common.file_manager import load_binary_files
+from common.file_manager import load_binary_files, get_file_path
 from common.integrity_checker import compute_sha256_file
-from common.tcp_capture import get_network_subnet, start_capture, stop_capture
+from common.packet_capture import start_capture_run, stop_capture_run
 from output.write_csv import write_to_file_mqtt
 
 BROKER = "mosquitto-broker"
@@ -158,16 +159,13 @@ def send_chunks(filepath, total_chunks, qos_level, client):
 
 def send_file(filename, qos_level):
     global ack_latency
-    filepath = os.path.join(DATA_DIR, filename)
+    filepath = os.path.join(get_file_path(filename))
     if not os.path.exists(filepath):
         print(f"File {filepath} not found.")
         return
 
     client = make_client()
     client.loop_start()
-
-    subnet = get_network_subnet('mqtt-net')
-    capture = start_capture(subnet, "output/mqtt_capture.pcap")
 
     file_size, total_chunks = calculate_total_chunks(filepath)
     print(f"\n--- Starting transfer: {filename} ({file_size / 1024 / 1024:.2f} MB) ---")
@@ -176,6 +174,7 @@ def send_file(filename, qos_level):
 
     ack_latency = 0
     metadata_ack_event.clear()
+
 
     start_time = time.time()
     msg_info, metadata_payload_len = send_metadata(filename, total_chunks, checksum, qos_level, client)
@@ -208,7 +207,7 @@ def send_file(filename, qos_level):
     ]
     write_to_file_mqtt(measurements)
 
-    stop_capture(capture)
+
 
     print("Finished sending file.")
     print(f"Latency: {ack_latency:.4f}s | Sender Time: {duration:.2f}s")
@@ -227,16 +226,27 @@ def qos_levels_loop(files):
 
 
 if __name__ == "__main__":
-    time.sleep(5)  # Wait for broker and receiver to spin up
+    # time.sleep(5)  # Wait for broker and receiver to spin up
+    #
+    #
+    # # with open("/proc/net/dev") as f:
+    # #     print(f.read())  # see all interfaces and their current counters
+    # # time.sleep(5)
+    #
+    # files = load_binary_files()
+    # qos_levels_loop(files)
+    #
+    #
+    # time.sleep(10)
+    # # client.loop_stop()
 
+    parser = argparse.ArgumentParser()
 
-    with open("/proc/net/dev") as f:
-        print(f.read())  # see all interfaces and their current counters
-    time.sleep(5)
+    parser.add_argument("--file", required=True)
+    parser.add_argument("--qos", required=True, type=int)
 
-    files = load_binary_files()
-    qos_levels_loop(files)
+    args = parser.parse_args()
 
+    time.sleep(5)  # Wait for broker
 
-    time.sleep(10)
-    # client.loop_stop()
+    send_file(args.file, args.qos)
